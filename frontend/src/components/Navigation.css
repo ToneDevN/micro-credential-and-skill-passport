@@ -1,0 +1,362 @@
+/* Stitch Design System - Navbar & Footer */
+
+/* ==================== NAVBAR ==================== */
+.stitch-navbar-header {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e6e8ea;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.stitch-navbar-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  height: 64px;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Brand Logo */
+.stitch-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #191c1e;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  transition: color 0.15s ease;
+}
+
+.stitch-brand:hover {
+  color: #4f46e5;
+}
+
+.stitch-brand-logo-icon {
+  color: #4f46e5;
+  font-size: 24px;
+}
+
+/* Navigation Links */
+.stitch-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 768px) {
+  .stitch-nav-links {
+    display: none;
+  }
+}
+
+.stitch-nav-item {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.stitch-nav-link {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #565e74;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  padding: 0 0.25rem;
+  transition: all 0.15s ease;
+}
+
+.stitch-nav-link:hover {
+  color: #191c1e;
+}
+
+.stitch-nav-link.active {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+}
+
+/* Trailing Section (Right) */
+.stitch-nav-trailing {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stitch-nav-bell-btn {
+  background: transparent;
+  border: none;
+  color: #565e74;
+  padding: 0.35rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.stitch-nav-bell-btn:hover {
+  color: #4f46e5;
+}
+
+.stitch-nav-bell-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: #4f46e5;
+}
+
+.stitch-nav-divider {
+  width: 1px;
+  height: 24px;
+  background-color: #e6e8ea;
+}
+
+/* User Profile Chip */
+.stitch-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: inherit;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.15s ease;
+}
+
+.stitch-user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #e2dfff 0%, #c3c0ff 100%);
+  color: #3525cd;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px #e6e8ea;
+}
+
+.stitch-user-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.stitch-user-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #191c1e;
+  line-height: 1.2;
+}
+
+.stitch-user-role {
+  font-size: 0.725rem;
+  color: #565e74;
+  text-transform: capitalize;
+}
+
+.stitch-logout-btn {
+  background: #f7f9fb;
+  border: 1px solid #e6e8ea;
+  color: #565e74;
+  border-radius: 0.375rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.stitch-logout-btn:hover {
+  background: #ffdad6;
+  color: #93000a;
+  border-color: rgba(186, 26, 26, 0.3);
+}
+
+/* Auth Buttons */
+.stitch-auth-btn-signin {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #565e74;
+  text-decoration: none;
+  padding: 0.45rem 0.95rem;
+  border-radius: 0.5rem;
+  transition: all 0.15s ease;
+}
+
+.stitch-auth-btn-signin:hover {
+  color: #191c1e;
+  background-color: #f2f4f6;
+}
+
+.stitch-auth-btn-register {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background-color: #4f46e5;
+  color: #ffffff !important;
+  text-decoration: none;
+  padding: 0.45rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
+  transition: all 0.15s ease;
+}
+
+.stitch-auth-btn-register:hover {
+  background-color: #4338ca;
+  box-shadow: 0 3px 6px rgba(79, 70, 229, 0.35);
+}
+
+/* Mobile Toggle */
+.stitch-mobile-menu-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #191c1e;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .stitch-mobile-menu-btn {
+    display: flex;
+    align-items: center;
+  }
+}
+
+.stitch-mobile-drawer {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.5rem 1.25rem 1.5rem;
+  border-top: 1px solid #e6e8ea;
+  background: #ffffff;
+  gap: 0.75rem;
+}
+
+.stitch-mobile-link {
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: #565e74;
+  text-decoration: none;
+  padding: 0.5rem 0;
+}
+
+.stitch-mobile-link.active {
+  color: #4f46e5;
+}
+
+/* ==================== FOOTER ==================== */
+.stitch-footer {
+  width: 100%;
+  background-color: #ffffff;
+  border-top: 1px solid #e6e8ea;
+  margin-top: auto;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.stitch-footer-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+@media (max-width: 860px) {
+  .stitch-footer-container {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.5rem;
+  }
+}
+
+/* Left Brand & Copyright */
+.stitch-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 860px) {
+  .stitch-footer-left {
+    justify-content: center;
+  }
+}
+
+.stitch-footer-badge {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #565e74;
+}
+
+.stitch-footer-bullet {
+  color: #c7c4d8;
+  font-size: 0.85rem;
+}
+
+.stitch-footer-copyright {
+  font-size: 0.825rem;
+  color: #565e74;
+  margin: 0;
+}
+
+/* Right Navigation Links */
+.stitch-footer-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 860px) {
+  .stitch-footer-nav {
+    justify-content: center;
+    gap: 1rem;
+  }
+}
+
+.stitch-footer-link {
+  font-size: 0.825rem;
+  color: #565e74;
+  text-decoration: none;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+
+.stitch-footer-link:hover {
+  color: #4f46e5;
+  text-decoration: underline;
+}

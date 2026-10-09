@@ -1,0 +1,568 @@
+/* Stitch Design System - Skill Passport Dashboard */
+
+.passport-canvas {
+  min-height: calc(100vh - 120px);
+  background-color: #f7f9fb;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #191c1e;
+  padding: 2rem 1.5rem 3.5rem 1.5rem;
+}
+
+.passport-container {
+  max-width: 1024px; /* max-w-5xl */
+  margin: 0 auto;
+}
+
+/* 1. Page Header */
+.passport-header-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .passport-header-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.passport-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: #191c1e;
+  margin: 0 0 0.25rem 0;
+}
+
+.passport-subtitle {
+  font-size: 1rem;
+  color: #565e74;
+  margin: 0;
+}
+
+.passport-identity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #ffffff;
+  border: 1px solid #e6e8ea;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  align-self: flex-start;
+}
+
+@media (min-width: 640px) {
+  .passport-identity-chip {
+    align-self: auto;
+  }
+}
+
+.passport-identity-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background-color: #dae2fd;
+  color: #131b2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.passport-identity-name {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #191c1e;
+}
+
+.passport-identity-verified {
+  color: #006e4c;
+  font-size: 16px;
+}
+
+/* 2. Summary Stats Cards */
+.passport-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+  .passport-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.passport-stat-card {
+  background: #ffffff;
+  border: 1px solid #e6e8ea;
+  border-radius: 0.875rem;
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.passport-stat-card:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.passport-stat-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.passport-stat-icon-wrap.badges {
+  background-color: #e2dfff;
+  color: #4f46e5;
+}
+
+.passport-stat-icon-wrap.pending {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.passport-stat-icon-wrap.completion {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+.passport-stat-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #191c1e;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.passport-stat-label {
+  font-size: 0.85rem;
+  color: #565e74;
+  margin-top: 0.15rem;
+}
+
+/* 3. Navigation Tabs */
+.passport-tabs-nav {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  border-bottom: 1px solid #e6e8ea;
+  margin-bottom: 2rem;
+}
+
+.passport-tab-button {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.75rem 0.25rem 0.85rem 0.25rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: #565e74;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.passport-tab-button:hover {
+  color: #191c1e;
+}
+
+.passport-tab-button.active {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+}
+
+/* 4. Digital Badges Section */
+.passport-badges-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.passport-course-group {
+  margin-bottom: 1rem;
+}
+
+.passport-course-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.passport-course-group-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #191c1e;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.passport-course-badge-count {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.775rem;
+  font-weight: 600;
+  background-color: #f2f4f6;
+  color: #565e74;
+  border: 1px solid #e6e8ea;
+  padding: 0.15rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.passport-course-curriculum-id {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #777587;
+}
+
+.passport-badges-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .passport-badges-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .passport-badges-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.passport-badge-card {
+  background: #ffffff;
+  border: 1px solid #e6e8ea;
+  border-radius: 0.875rem;
+  padding: 1.5rem 1.25rem 1.25rem 1.25rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.passport-badge-card:hover {
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.08);
+  border-color: #c3c0ff;
+  transform: translateY(-2px);
+}
+
+.passport-badge-circle {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  border-radius: 9999px;
+  background-color: #e2dfff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.12);
+}
+
+.passport-badge-icon {
+  color: #4f46e5;
+  font-size: 32px;
+}
+
+.passport-badge-verified-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background-color: #059669;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  border: 2px solid #ffffff;
+}
+
+.passport-badge-skill-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #191c1e;
+  margin: 0.85rem 0 0.2rem 0;
+}
+
+.passport-badge-course-name {
+  font-size: 0.825rem;
+  color: #565e74;
+  margin: 0 0 0.4rem 0;
+}
+
+.passport-badge-date {
+  font-size: 0.775rem;
+  color: #777587;
+  margin: 0;
+}
+
+.passport-badge-footer {
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid #f2f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  color: #006e4c;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* 5. Skill Map Section */
+.passport-skillmap-card {
+  background: #ffffff;
+  border: 1px solid #e6e8ea;
+  border-radius: 0.875rem;
+  padding: 1.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.passport-skillmap-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #f2f4f6;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .passport-skillmap-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.passport-skillmap-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #191c1e;
+  margin: 0 0 0.15rem 0;
+}
+
+.passport-skillmap-subtitle {
+  font-size: 0.875rem;
+  color: #565e74;
+  margin: 0;
+}
+
+.passport-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #565e74;
+}
+
+.passport-sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: #059669;
+}
+
+.passport-course-map-item {
+  margin-bottom: 2rem;
+}
+
+.passport-course-map-item:not(:first-child) {
+  padding-top: 1.75rem;
+  border-top: 1px solid #e6e8ea;
+}
+
+.passport-course-map-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+
+.passport-course-map-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #191c1e;
+  margin: 0;
+}
+
+.passport-course-map-ratio {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #565e74;
+}
+
+.passport-progressbar-bg {
+  width: 100%;
+  height: 8px;
+  background-color: #eceef0;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.passport-progressbar-fill {
+  height: 100%;
+  background-color: #4f46e5;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.passport-skills-status-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 520px) {
+  .passport-skills-status-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 860px) {
+  .passport-skills-status-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.passport-skill-status-cell {
+  background-color: #f7f9fb;
+  border: 1px solid #e6e8ea;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.passport-skill-cell-name {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #191c1e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.passport-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.passport-status-pill.earned {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.passport-status-pill.pending {
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.passport-status-pill.not_started {
+  background-color: #eceef0;
+  color: #565e74;
+  border: 1px solid #d8dadc;
+}
+
+.passport-status-pill.expired {
+  background-color: #f2f4f6;
+  color: #565e74;
+  border: 1px solid #c7c4d8;
+}
+
+.passport-status-pill.rejected {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* Empty States */
+.passport-empty-box {
+  background: #ffffff;
+  border: 1px dashed #c7c4d8;
+  border-radius: 0.875rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.passport-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  background-color: #f2f4f6;
+  color: #565e74;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem auto;
+}
+
+.passport-empty-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #191c1e;
+  margin-bottom: 0.35rem;
+}
+
+.passport-empty-desc {
+  font-size: 0.875rem;
+  color: #565e74;
+  max-width: 420px;
+  margin: 0 auto 1.5rem auto;
+}

@@ -29,10 +29,10 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
           </p>
           <hr />
           <a
-            href={user?.role === 'instructor' ? '/instructor/dashboard' : '/student/dashboard'}
+            href={user?.role === 'instructor' ? '/instructor/courses' : '/student/passport'}
             className="btn btn-outline-danger btn-sm"
           >
-            Go to your Dashboard
+            Go to your Portal
           </a>
         </div>
       </div>

@@ -8,6 +8,12 @@
   padding: 2rem 1.5rem 3rem 1.5rem;
 }
 
+@media (max-width: 640px) {
+  .verification-canvas {
+    padding: 1rem 1rem 2.5rem 1rem;
+  }
+}
+
 .verification-container {
   max-width: 896px; /* max-w-4xl */
   margin: 0 auto;
@@ -320,7 +326,12 @@
 @media (max-width: 640px) {
   .verification-history-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+  }
+  .verification-btn-new {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
   }
 }
 
@@ -352,7 +363,11 @@
   gap: 1.5rem;
   border-bottom: 1px solid #e6e8ea;
   overflow-x: auto;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
   margin-bottom: 1.5rem;
+  padding-bottom: 0.25rem;
 }
 
 .verification-tab-btn {
@@ -553,6 +568,14 @@
   border-top: 1px solid #f2f4f6;
 }
 
+@media (max-width: 640px) {
+  .verification-card-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+  }
+}
+
 .verification-action-btn {
   background: #ffffff;
   border: 1px solid #e6e8ea;
@@ -566,6 +589,15 @@
   gap: 0.35rem;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+@media (max-width: 640px) {
+  .verification-action-btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 0.875rem;
+  }
 }
 
 .verification-action-btn:hover {

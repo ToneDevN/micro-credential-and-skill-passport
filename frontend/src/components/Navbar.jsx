@@ -14,11 +14,6 @@ const Navbar = () => {
     navigate('/login');
   };
 
-  const dashboardPath =
-    user?.role === 'instructor'
-      ? '/instructor/dashboard'
-      : '/student/dashboard';
-
   const userInitial = user?.name ? user.name.trim().charAt(0).toUpperCase() : 'U';
 
   const isActive = (path) => location.pathname === path;
@@ -27,7 +22,7 @@ const Navbar = () => {
     <header className="stitch-navbar-header">
       <div className="stitch-navbar-container">
         {/* Brand Logo Left */}
-        <Link className="stitch-brand" to="/">
+        <Link className="stitch-brand" to="/explore">
           <span
             className="material-symbols-outlined stitch-brand-logo-icon"
             style={{ fontVariationSettings: "'FILL' 1" }}
@@ -48,24 +43,6 @@ const Navbar = () => {
                 Explore
               </Link>
             </li>
-            <li className="stitch-nav-item">
-              <Link
-                className={`stitch-nav-link ${isActive('/') ? 'active' : ''}`}
-                to="/"
-              >
-                Home
-              </Link>
-            </li>
-            {isAuthenticated && (
-              <li className="stitch-nav-item">
-                <Link
-                  className={`stitch-nav-link ${isActive(dashboardPath) ? 'active' : ''}`}
-                  to={dashboardPath}
-                >
-                  {user?.role === 'instructor' ? 'Instructor Portal' : 'My Dashboard'}
-                </Link>
-              </li>
-            )}
             {isAuthenticated && user?.role === 'instructor' && (
               <>
                 <li className="stitch-nav-item">
@@ -158,10 +135,10 @@ const Navbar = () => {
             </>
           ) : (
             <div className="d-flex align-items-center gap-2">
-              <Link to="/login" className="stitch-auth-btn-signin">
+              <Link to="/login" className="stitch-auth-btn-signin d-none d-sm-inline-flex">
                 Sign In
               </Link>
-              <Link to="/register" className="stitch-auth-btn-register">
+              <Link to="/register" className="stitch-auth-btn-register d-none d-sm-inline-flex">
                 Register
               </Link>
             </div>
@@ -173,6 +150,7 @@ const Navbar = () => {
             className="stitch-mobile-menu-btn"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle navigation"
+            aria-expanded={mobileMenuOpen}
           >
             <span className="material-symbols-outlined">
               {mobileMenuOpen ? 'close' : 'menu'}
@@ -191,22 +169,7 @@ const Navbar = () => {
           >
             Explore Skills
           </Link>
-          <Link
-            to="/"
-            className={`stitch-mobile-link ${isActive('/') ? 'active' : ''}`}
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Home
-          </Link>
-          {isAuthenticated && (
-            <Link
-              to={dashboardPath}
-              className={`stitch-mobile-link ${isActive(dashboardPath) ? 'active' : ''}`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Dashboard ({user?.role})
-            </Link>
-          )}
+
           {isAuthenticated && user?.role === 'instructor' && (
             <>
               <Link
@@ -249,6 +212,41 @@ const Navbar = () => {
                 My Requests
               </Link>
             </>
+          )}
+
+          {!isAuthenticated ? (
+            <div className="stitch-mobile-auth-group">
+              <Link
+                to="/login"
+                className="stitch-mobile-auth-btn-signin"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/register"
+                className="stitch-mobile-auth-btn-register"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Register
+              </Link>
+            </div>
+          ) : (
+            <div className="stitch-mobile-auth-group">
+              <button
+                type="button"
+                className="stitch-mobile-logout-btn"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleLogout();
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                  logout
+                </span>
+                <span>Logout ({user?.name || user?.role})</span>
+              </button>
+            </div>
           )}
         </div>
       )}

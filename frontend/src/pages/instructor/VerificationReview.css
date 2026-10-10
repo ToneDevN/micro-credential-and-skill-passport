@@ -7,6 +7,12 @@
   padding: 2rem 1.5rem 4rem;
 }
 
+@media (max-width: 768px) {
+  .review-mgmt-canvas {
+    padding: 1rem 1rem 3rem 1rem;
+  }
+}
+
 /* Header */
 .review-mgmt-header {
   display: flex;
@@ -74,6 +80,36 @@
   .review-mgmt-filter-bar {
     flex-direction: row;
     align-items: center;
+  }
+}
+
+@media (max-width: 767px) {
+  .review-mgmt-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .review-mgmt-tabs {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    padding-bottom: 0.25rem;
+  }
+  .review-mgmt-tab-btn {
+    min-height: 40px;
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .review-mgmt-select-wrap {
+    width: 100%;
+  }
+  .review-mgmt-select {
+    min-height: 44px;
+    width: 100%;
   }
 }
 
@@ -518,4 +554,113 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* Mobile Stacked Cards Styles */
+.review-mobile-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.85rem;
+}
+
+.review-mobile-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.15rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.review-mobile-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.review-mobile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.review-mobile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.review-mobile-row-key {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.review-mobile-row-val {
+  color: #0f172a;
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+
+.review-mobile-feedback-box {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.5rem;
+  font-size: 0.825rem;
+}
+
+.review-mobile-feedback-box.approved {
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.review-mobile-feedback-box.rejected {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.review-mobile-feedback-title {
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  margin-bottom: 0.2rem;
+}
+
+.review-mobile-feedback-text {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.review-mobile-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.review-mobile-actions button {
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+}
+
+.review-mobile-reviewed-foot {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f1f5f9;
+  font-size: 0.775rem;
+  color: #64748b;
+  text-align: right;
 }

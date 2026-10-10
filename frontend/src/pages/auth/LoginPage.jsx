@@ -27,9 +27,9 @@ const LoginPage = () => {
     try {
       const user = await login(email, password);
       if (user.role === 'instructor') {
-        navigate('/instructor/dashboard');
+        navigate('/instructor/courses');
       } else {
-        navigate('/student/dashboard');
+        navigate('/student/passport');
       }
     } catch (err) {
       if (err.response?.status === 401) {

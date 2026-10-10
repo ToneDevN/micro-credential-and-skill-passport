@@ -8,6 +8,12 @@
   padding: 2rem 1.5rem 3.5rem 1.5rem;
 }
 
+@media (max-width: 768px) {
+  .passport-canvas {
+    padding: 1rem 1rem 2.5rem 1rem;
+  }
+}
+
 .passport-container {
   max-width: 1024px; /* max-w-5xl */
   margin: 0 auto;
@@ -165,6 +171,22 @@
   gap: 2rem;
   border-bottom: 1px solid #e6e8ea;
   margin-bottom: 2rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 640px) {
+  .passport-tabs-nav {
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.25rem;
+  }
+  .passport-tab-button {
+    min-height: 44px;
+    font-size: 0.875rem;
+  }
 }
 
 .passport-tab-button {
@@ -208,6 +230,17 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+  .passport-course-group-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+  .passport-course-group-title {
+    font-size: 1.15rem;
+  }
 }
 
 .passport-course-group-title {

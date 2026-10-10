@@ -281,136 +281,248 @@ const VerificationReviewPage = () => {
             </p>
           </div>
         ) : (
-          <div className="table-responsive">
-            <table className="review-mgmt-table">
-              <thead>
-                <tr>
-                  <th scope="col">Student</th>
-                  <th scope="col">Skill</th>
-                  <th scope="col">Course</th>
-                  <th scope="col">Evidence</th>
-                  <th scope="col">Submitted</th>
-                  <th scope="col">Status</th>
-                  <th scope="col" className="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map((req) => {
-                  const isPending = req.status === 'pending';
-                  const initials = getInitials(req.student?.name);
+          <>
+            {/* Desktop Table View */}
+            <div className="table-responsive d-none d-md-block">
+              <table className="review-mgmt-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Student</th>
+                    <th scope="col">Skill</th>
+                    <th scope="col">Course</th>
+                    <th scope="col">Evidence</th>
+                    <th scope="col">Submitted</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" className="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.map((req) => {
+                    const isPending = req.status === 'pending';
+                    const initials = getInitials(req.student?.name);
 
-                  return (
-                    <tr
-                      key={req._id}
-                      className={!isPending ? 'reviewed-row' : ''}
-                    >
-                      {/* Student */}
-                      <td>
-                        <div className="review-mgmt-student-cell">
-                          <div className="review-mgmt-avatar">{initials}</div>
-                          <div>
-                            <div className="review-mgmt-student-name">
-                              {req.student?.name}
-                            </div>
-                            <div className="review-mgmt-student-email">
-                              {req.student?.email}
+                    return (
+                      <tr
+                        key={req._id}
+                        className={!isPending ? 'reviewed-row' : ''}
+                      >
+                        {/* Student */}
+                        <td>
+                          <div className="review-mgmt-student-cell">
+                            <div className="review-mgmt-avatar">{initials}</div>
+                            <div>
+                              <div className="review-mgmt-student-name">
+                                {req.student?.name}
+                              </div>
+                              <div className="review-mgmt-student-email">
+                                {req.student?.email}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Skill */}
-                      <td>
-                        <span className="fw-semibold text-slate-800">
-                          {req.skill?.name}
-                        </span>
-                      </td>
-
-                      {/* Course */}
-                      <td className="text-muted">{req.course?.name}</td>
-
-                      {/* Evidence */}
-                      <td>
-                        {req.evidence_url ? (
-                          <a
-                            href={req.evidence_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="review-mgmt-evidence-link"
-                            title={req.evidence_url}
-                          >
-                            <span>{req.evidence_url.replace(/^https?:\/\//, '')}</span>
-                            <span className="material-symbols-outlined text-[15px]">
-                              open_in_new
-                            </span>
-                          </a>
-                        ) : (
-                          <span className="text-muted">—</span>
-                        )}
-                      </td>
-
-                      {/* Submitted Date */}
-                      <td className="text-muted">
-                        <div>{formatDate(req.submitted_at)}</div>
-                      </td>
-
-                      {/* Status */}
-                      <td>
-                        <span className={`review-status-badge ${req.status}`}>
-                          {req.status === 'pending' && <span className="badge-dot"></span>}
-                          {req.status === 'approved' && (
-                            <span className="material-symbols-outlined text-[14px]">
-                              check
-                            </span>
-                          )}
-                          {req.status === 'rejected' && (
-                            <span className="material-symbols-outlined text-[14px]">
-                              close
-                            </span>
-                          )}
-                          <span>
-                            {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                        {/* Skill */}
+                        <td>
+                          <span className="fw-semibold text-slate-800">
+                            {req.skill?.name}
                           </span>
-                        </span>
-                      </td>
+                        </td>
 
-                      {/* Actions */}
-                      <td className="text-end">
-                        {isPending ? (
-                          <div className="review-mgmt-actions-wrap">
-                            <button
-                              type="button"
-                              className="review-btn-approve"
-                              onClick={() => handleOpenApprove(req)}
+                        {/* Course */}
+                        <td className="text-muted">{req.course?.name}</td>
+
+                        {/* Evidence */}
+                        <td>
+                          {req.evidence_url ? (
+                            <a
+                              href={req.evidence_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="review-mgmt-evidence-link"
+                              title={req.evidence_url}
                             >
-                              <span className="material-symbols-outlined text-[16px]">
+                              <span>{req.evidence_url.replace(/^https?:\/\//, '')}</span>
+                              <span className="material-symbols-outlined text-[15px]">
+                                open_in_new
+                              </span>
+                            </a>
+                          ) : (
+                            <span className="text-muted">—</span>
+                          )}
+                        </td>
+
+                        {/* Submitted Date */}
+                        <td className="text-muted">
+                          <div>{formatDate(req.submitted_at)}</div>
+                        </td>
+
+                        {/* Status */}
+                        <td>
+                          <span className={`review-status-badge ${req.status}`}>
+                            {req.status === 'pending' && <span className="badge-dot"></span>}
+                            {req.status === 'approved' && (
+                              <span className="material-symbols-outlined text-[14px]">
                                 check
                               </span>
-                              <span>Approve</span>
-                            </button>
-                            <button
-                              type="button"
-                              className="review-btn-reject"
-                              onClick={() => handleOpenReject(req)}
-                            >
-                              <span className="material-symbols-outlined text-[16px]">
+                            )}
+                            {req.status === 'rejected' && (
+                              <span className="material-symbols-outlined text-[14px]">
                                 close
                               </span>
-                              <span>Reject</span>
-                            </button>
+                            )}
+                            <span>
+                              {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                            </span>
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="text-end">
+                          {isPending ? (
+                            <div className="review-mgmt-actions-wrap">
+                              <button
+                                type="button"
+                                className="review-btn-approve"
+                                onClick={() => handleOpenApprove(req)}
+                              >
+                                <span className="material-symbols-outlined text-[16px]">
+                                  check
+                                </span>
+                                <span>Approve</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="review-btn-reject"
+                                onClick={() => handleOpenReject(req)}
+                              >
+                                <span className="material-symbols-outlined text-[16px]">
+                                  close
+                                </span>
+                                <span>Reject</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="review-reviewed-text">
+                              Reviewed {formatDate(req.reviewed_at)}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Stacked Cards View */}
+            <div className="review-mobile-cards-list d-md-none">
+              {requests.map((req) => {
+                const isPending = req.status === 'pending';
+                const initials = getInitials(req.student?.name);
+
+                return (
+                  <article key={req._id} className="review-mobile-card">
+                    {/* Header: Student Info & Status */}
+                    <div className="review-mobile-card-top">
+                      <div className="review-mgmt-student-cell">
+                        <div className="review-mgmt-avatar">{initials}</div>
+                        <div>
+                          <div className="review-mgmt-student-name">
+                            {req.student?.name}
                           </div>
-                        ) : (
-                          <span className="review-reviewed-text">
-                            Reviewed {formatDate(req.reviewed_at)}
+                          <div className="review-mgmt-student-email">
+                            {req.student?.email}
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`review-status-badge ${req.status}`}>
+                        {req.status === 'pending' && <span className="badge-dot"></span>}
+                        {req.status === 'approved' && (
+                          <span className="material-symbols-outlined text-[14px]">
+                            check
                           </span>
                         )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        {req.status === 'rejected' && (
+                          <span className="material-symbols-outlined text-[14px]">
+                            close
+                          </span>
+                        )}
+                        <span>
+                          {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                        </span>
+                      </span>
+                    </div>
+
+                    {/* Metadata Rows */}
+                    <div className="review-mobile-details">
+                      <div className="review-mobile-row">
+                        <span className="review-mobile-row-key">Skill:</span>
+                        <span className="review-mobile-row-val">{req.skill?.name}</span>
+                      </div>
+                      <div className="review-mobile-row">
+                        <span className="review-mobile-row-key">Course:</span>
+                        <span className="review-mobile-row-val text-muted">{req.course?.name}</span>
+                      </div>
+                      <div className="review-mobile-row">
+                        <span className="review-mobile-row-key">Submitted:</span>
+                        <span className="review-mobile-row-val text-muted">{formatDate(req.submitted_at)}</span>
+                      </div>
+                      {req.evidence_url && (
+                        <div className="review-mobile-row">
+                          <span className="review-mobile-row-key">Evidence:</span>
+                          <span className="review-mobile-row-val">
+                            <a
+                              href={req.evidence_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="review-mgmt-evidence-link"
+                            >
+                              <span>{req.evidence_url.replace(/^https?:\/\//, '')}</span>
+                              <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                            </a>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Review Feedback note (if approved/rejected) */}
+                    {req.feedback && (
+                      <div className={`review-mobile-feedback-box ${req.status}`}>
+                        <div className="review-mobile-feedback-title">Decision Note:</div>
+                        <p className="review-mobile-feedback-text">“{req.feedback}”</p>
+                      </div>
+                    )}
+
+                    {/* Actions if pending */}
+                    {isPending ? (
+                      <div className="review-mobile-actions">
+                        <button
+                          type="button"
+                          className="review-btn-approve"
+                          onClick={() => handleOpenApprove(req)}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">check</span>
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="review-btn-reject"
+                          onClick={() => handleOpenReject(req)}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="review-mobile-reviewed-foot">
+                        Reviewed on {formatDate(req.reviewed_at)}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 

@@ -32,9 +32,9 @@ const RegisterPage = () => {
     try {
       const user = await register(name, email, password, role);
       if (user.role === 'instructor') {
-        navigate('/instructor/dashboard');
+        navigate('/instructor/courses');
       } else {
-        navigate('/student/dashboard');
+        navigate('/student/passport');
       }
     } catch (err) {
       if (err.response?.status === 409) {

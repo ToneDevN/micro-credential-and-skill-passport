@@ -8,6 +8,12 @@
   padding: 2rem 1.5rem 3rem 1.5rem;
 }
 
+@media (max-width: 768px) {
+  .explore-container {
+    padding: 1rem 1rem 2.5rem 1rem;
+  }
+}
+
 .explore-wrapper {
   max-width: 1024px;
   margin: 0 auto;
@@ -170,8 +176,11 @@
   align-items: center;
   gap: 0.5rem;
   overflow-x: auto;
-  padding-bottom: 0.25rem;
-  margin-bottom: 1.75rem;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.35rem;
+  margin-bottom: 1.5rem;
 }
 
 .explore-filter-label {
@@ -242,6 +251,19 @@
   background: #ffffff;
   transition: background-color 0.15s ease;
   user-select: none;
+}
+
+@media (max-width: 640px) {
+  .explore-course-header {
+    padding: 0.85rem 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .explore-course-right {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 .explore-course-header:hover {

@@ -265,11 +265,11 @@ const PassportDashboardPage = () => {
                   Start by exploring skills and submitting verification requests to earn your digital
                   credentials.
                 </p>
-                <div className="d-flex justify-content-center gap-2">
-                  <Link to="/explore" className="btn btn-outline-primary btn-sm px-3">
+                <div className="d-flex flex-column flex-sm-row justify-content-center gap-2">
+                  <Link to="/explore" className="btn btn-outline-primary px-3 py-2" style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                     Explore Skills
                   </Link>
-                  <Link to="/student/submit-verification" className="btn btn-primary btn-sm px-3">
+                  <Link to="/student/submit-verification" className="btn btn-primary px-3 py-2" style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                     Submit Verification
                   </Link>
                 </div>
@@ -350,7 +350,7 @@ const PassportDashboardPage = () => {
                 <p className="passport-empty-desc">
                   Enroll in a course to see your skill competency map and tracking progress.
                 </p>
-                <Link to="/explore" className="btn btn-primary btn-sm px-3">
+                <Link to="/explore" className="btn btn-primary px-3 py-2" style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   Explore Courses
                 </Link>
               </div>

@@ -219,121 +219,241 @@ const AnalyticsDashboardPage = () => {
                 </p>
               </div>
             ) : (
-              <div className="analytics-table-card">
-                <div className="analytics-table-wrap">
-                  <table className="analytics-table">
-                    <thead>
-                      <tr>
-                        <th style={{ width: '56px' }}>#</th>
-                        <th>Skill</th>
-                        <th>Course</th>
-                        <th style={{ textAlign: 'center' }}>Approved</th>
-                        <th style={{ textAlign: 'center' }}>Rejected</th>
-                        <th style={{ textAlign: 'center' }}>Pending</th>
-                        <th style={{ textAlign: 'center' }}>Approval Rate</th>
-                        <th style={{ minWidth: '150px' }}>Distribution</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {skills.map((item, index) => {
-                        const totalEvaluated = item.approved + item.rejected + item.pending;
-                        const approvedPct =
-                          totalEvaluated > 0
-                            ? (item.approved / totalEvaluated) * 100
-                            : 0;
-                        const rejectedPct =
-                          totalEvaluated > 0
-                            ? (item.rejected / totalEvaluated) * 100
-                            : 0;
-                        const pendingPct =
-                          totalEvaluated > 0
-                            ? (item.pending / totalEvaluated) * 100
-                            : 0;
+              <>
+                {/* Desktop Table View */}
+                <div className="analytics-table-card d-none d-md-block">
+                  <div className="analytics-table-wrap">
+                    <table className="analytics-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '56px' }}>#</th>
+                          <th>Skill</th>
+                          <th>Course</th>
+                          <th style={{ textAlign: 'center' }}>Approved</th>
+                          <th style={{ textAlign: 'center' }}>Rejected</th>
+                          <th style={{ textAlign: 'center' }}>Pending</th>
+                          <th style={{ textAlign: 'center' }}>Approval Rate</th>
+                          <th style={{ minWidth: '150px' }}>Distribution</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {skills.map((item, index) => {
+                          const totalEvaluated = item.approved + item.rejected + item.pending;
+                          const approvedPct =
+                            totalEvaluated > 0
+                              ? (item.approved / totalEvaluated) * 100
+                              : 0;
+                          const rejectedPct =
+                            totalEvaluated > 0
+                              ? (item.rejected / totalEvaluated) * 100
+                              : 0;
+                          const pendingPct =
+                            totalEvaluated > 0
+                              ? (item.pending / totalEvaluated) * 100
+                              : 0;
 
-                        return (
-                          <tr key={`${item.course._id}-${item.skill._id}`}>
-                            <td>
-                              <span
-                                className={`rank-badge ${
-                                  index < 3 ? 'top-rank' : 'lower-rank'
-                                }`}
-                              >
-                                #{index + 1}
-                              </span>
-                            </td>
-                            <td>
-                              <div className="skill-name-col">{item.skill.name}</div>
-                            </td>
-                            <td>
-                              <span className="course-name-sub">
-                                {item.course.name}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: 'center' }}>
-                              <span
-                                className={`count-badge ${
-                                  item.approved > 0
-                                    ? 'count-badge-approved'
-                                    : 'count-badge-zero'
-                                }`}
-                              >
-                                {item.approved}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: 'center' }}>
-                              <span
-                                className={`count-badge ${
-                                  item.rejected > 0
-                                    ? 'count-badge-rejected'
-                                    : 'count-badge-zero'
-                                }`}
-                              >
-                                {item.rejected}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: 'center' }}>
-                              <span
-                                className={`count-badge ${
-                                  item.pending > 0
-                                    ? 'count-badge-pending'
-                                    : 'count-badge-zero'
-                                }`}
-                              >
-                                {item.pending}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: 'center' }}>
-                              <span
-                                className={`rate-indicator ${getRateColorClass(
-                                  item.approvalRate
-                                )}`}
-                              >
-                                {item.approvalRate}%
-                              </span>
-                            </td>
-                            <td>
-                              <div className="distribution-bar" title={`Approved: ${item.approved}, Rejected: ${item.rejected}, Pending: ${item.pending}`}>
-                                <div
-                                  className="bar-approved"
-                                  style={{ width: `${approvedPct}%` }}
-                                />
-                                <div
-                                  className="bar-rejected"
-                                  style={{ width: `${rejectedPct}%` }}
-                                />
-                                <div
-                                  className="bar-pending"
-                                  style={{ width: `${pendingPct}%` }}
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                          return (
+                            <tr key={`${item.course._id}-${item.skill._id}`}>
+                              <td>
+                                <span
+                                  className={`rank-badge ${
+                                    index < 3 ? 'top-rank' : 'lower-rank'
+                                  }`}
+                                >
+                                  #{index + 1}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="skill-name-col">{item.skill.name}</div>
+                              </td>
+                              <td>
+                                <span className="course-name-sub">
+                                  {item.course.name}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <span
+                                  className={`count-badge ${
+                                    item.approved > 0
+                                      ? 'count-badge-approved'
+                                      : 'count-badge-zero'
+                                  }`}
+                                >
+                                  {item.approved}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <span
+                                  className={`count-badge ${
+                                    item.rejected > 0
+                                      ? 'count-badge-rejected'
+                                      : 'count-badge-zero'
+                                  }`}
+                                >
+                                  {item.rejected}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <span
+                                  className={`count-badge ${
+                                    item.pending > 0
+                                      ? 'count-badge-pending'
+                                      : 'count-badge-zero'
+                                  }`}
+                                >
+                                  {item.pending}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <span
+                                  className={`rate-indicator ${getRateColorClass(
+                                    item.approvalRate
+                                  )}`}
+                                >
+                                  {item.approvalRate}%
+                                </span>
+                              </td>
+                              <td>
+                                <div className="distribution-bar" title={`Approved: ${item.approved}, Rejected: ${item.rejected}, Pending: ${item.pending}`}>
+                                  <div
+                                    className="bar-approved"
+                                    style={{ width: `${approvedPct}%` }}
+                                  />
+                                  <div
+                                    className="bar-rejected"
+                                    style={{ width: `${rejectedPct}%` }}
+                                  />
+                                  <div
+                                    className="bar-pending"
+                                    style={{ width: `${pendingPct}%` }}
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
+
+                {/* Mobile Cards View */}
+                <div className="analytics-mobile-cards-list d-md-none">
+                  {skills.map((item, index) => {
+                    const totalEvaluated = item.approved + item.rejected + item.pending;
+                    const approvedPct =
+                      totalEvaluated > 0
+                        ? (item.approved / totalEvaluated) * 100
+                        : 0;
+                    const rejectedPct =
+                      totalEvaluated > 0
+                        ? (item.rejected / totalEvaluated) * 100
+                        : 0;
+                    const pendingPct =
+                      totalEvaluated > 0
+                        ? (item.pending / totalEvaluated) * 100
+                        : 0;
+
+                    return (
+                      <article
+                        key={`${item.course._id}-${item.skill._id}`}
+                        className="analytics-mobile-card"
+                      >
+                        <div className="analytics-mobile-card-top">
+                          <div className="d-flex align-items-center gap-2">
+                            <span
+                              className={`rank-badge ${
+                                index < 3 ? 'top-rank' : 'lower-rank'
+                              }`}
+                            >
+                              #{index + 1}
+                            </span>
+                            <div>
+                              <div className="fw-bold text-dark">{item.skill.name}</div>
+                              <div className="text-muted small">{item.course.name}</div>
+                            </div>
+                          </div>
+                          <span
+                            className={`rate-indicator ${getRateColorClass(
+                              item.approvalRate
+                            )}`}
+                          >
+                            {item.approvalRate}%
+                          </span>
+                        </div>
+
+                        {/* Counts Chips */}
+                        <div className="analytics-mobile-chips-row">
+                          <div className="analytics-mobile-chip">
+                            <span className="text-muted small">Approved:</span>
+                            <span
+                              className={`count-badge ${
+                                item.approved > 0
+                                  ? 'count-badge-approved'
+                                  : 'count-badge-zero'
+                              }`}
+                            >
+                              {item.approved}
+                            </span>
+                          </div>
+                          <div className="analytics-mobile-chip">
+                            <span className="text-muted small">Rejected:</span>
+                            <span
+                              className={`count-badge ${
+                                item.rejected > 0
+                                  ? 'count-badge-rejected'
+                                  : 'count-badge-zero'
+                              }`}
+                            >
+                              {item.rejected}
+                            </span>
+                          </div>
+                          <div className="analytics-mobile-chip">
+                            <span className="text-muted small">Pending:</span>
+                            <span
+                              className={`count-badge ${
+                                item.pending > 0
+                                  ? 'count-badge-pending'
+                                  : 'count-badge-zero'
+                              }`}
+                            >
+                              {item.pending}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Distribution Bar */}
+                        <div className="mt-3">
+                          <div
+                            className="d-flex justify-content-between text-muted mb-1"
+                            style={{ fontSize: '11px' }}
+                          >
+                            <span>Distribution</span>
+                            <span>{totalEvaluated} submissions</span>
+                          </div>
+                          <div
+                            className="distribution-bar"
+                            title={`Approved: ${item.approved}, Rejected: ${item.rejected}, Pending: ${item.pending}`}
+                          >
+                            <div
+                              className="bar-approved"
+                              style={{ width: `${approvedPct}%` }}
+                            />
+                            <div
+                              className="bar-rejected"
+                              style={{ width: `${rejectedPct}%` }}
+                            />
+                            <div
+                              className="bar-pending"
+                              style={{ width: `${pendingPct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
 

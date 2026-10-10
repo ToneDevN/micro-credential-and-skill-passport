@@ -41,7 +41,20 @@ const validateLogin = [
   handleValidationErrors,
 ];
 
+const normalizeVerificationBody = (req, res, next) => {
+  if (req.body) {
+    if (!req.body.courseSkillId && req.body.course_skill_id) {
+      req.body.courseSkillId = req.body.course_skill_id;
+    }
+    if (!req.body.evidenceUrl && req.body.evidence_url) {
+      req.body.evidenceUrl = req.body.evidence_url;
+    }
+  }
+  next();
+};
+
 const validateSubmitVerification = [
+  normalizeVerificationBody,
   body('courseSkillId')
     .notEmpty()
     .withMessage('Course skill ID is required')
@@ -57,6 +70,7 @@ const validateSubmitVerification = [
 ];
 
 const validateUpdateVerification = [
+  normalizeVerificationBody,
   body('evidenceUrl')
     .trim()
     .notEmpty()

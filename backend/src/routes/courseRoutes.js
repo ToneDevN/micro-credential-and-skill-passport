@@ -26,11 +26,11 @@ const {
 // GET /api/courses or /api/v1/courses
 router.get('/', getCourses);
 
-// GET /api/courses/:id or /api/v1/courses/:id (Public)
-router.get('/:id', getCourseById);
-
 // GET /api/courses/my or /api/v1/courses/my (Instructor only)
 router.get('/my', protect, restrictTo('instructor'), getMyCourses);
+
+// GET /api/courses/:id or /api/v1/courses/:id (Public)
+router.get('/:id', getCourseById);
 
 // GET /api/courses/:courseId/public-skills (Public & student exploration)
 router.get('/:courseId/public-skills', getPublicCourseSkills);

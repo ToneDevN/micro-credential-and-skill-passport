@@ -99,7 +99,7 @@ const getCourseSkills = async (req, res, next) => {
           });
 
           return {
-            _id: cs._id,
+            _id: cs.skill_id._id,
             courseSkillId: cs._id,
             course_skill_id: cs._id,
             skill_id: {

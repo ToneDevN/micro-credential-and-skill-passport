@@ -217,7 +217,40 @@ const getMySkillMap = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get student's passport by student ID (Public view)
+ * @route   GET /api/passport/:studentId or /api/v1/passport/:studentId
+ * @access  Public
+ */
+const getPassportByStudentId = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+
+    let passport = await StudentPassport.findOne({ student_id: studentId });
+    if (!passport) {
+      passport = await StudentPassport.create({
+        student_id: studentId,
+        badges: [],
+      });
+    }
+
+    const totalBadges = passport.badges.length;
+
+    res.status(200).json({
+      passport: {
+        _id: passport._id,
+        student_id: passport.student_id,
+        badges: passport.badges,
+        totalBadges,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getMyPassport,
   getMySkillMap,
+  getPassportByStudentId,
 };

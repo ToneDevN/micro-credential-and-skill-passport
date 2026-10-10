@@ -13,7 +13,8 @@ const {
  */
 const submitRequest = async (req, res, next) => {
   try {
-    const { courseSkillId, evidenceUrl } = req.body;
+    const courseSkillId = req.body.courseSkillId || req.body.course_skill_id;
+    const evidenceUrl = req.body.evidenceUrl || req.body.evidence_url;
 
     if (!mongoose.Types.ObjectId.isValid(courseSkillId)) {
       return res.status(404).json({ message: 'Course skill not found' });
@@ -77,6 +78,7 @@ const submitRequest = async (req, res, next) => {
     res.status(201).json({
       success: true,
       request: verificationRequest,
+      verificationRequest,
     });
   } catch (error) {
     next(error);
@@ -91,7 +93,7 @@ const submitRequest = async (req, res, next) => {
 const editRequest = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { evidenceUrl } = req.body;
+    const evidenceUrl = req.body.evidenceUrl || req.body.evidence_url;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(404).json({ message: 'Verification request not found' });
@@ -194,23 +196,50 @@ const cancelRequest = async (req, res, next) => {
  */
 const resubmitRequest = async (req, res, next) => {
   try {
-    const { id } = req.params; // StudentSkillStatus._id
-    const { evidenceUrl } = req.body;
+    const { id } = req.params;
+    const evidenceUrl = req.body.evidenceUrl || req.body.evidence_url;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(404).json({ message: 'Skill status not found' });
     }
 
-    let studentSkillStatus = await StudentSkillStatus.findById(id);
-
-    if (!studentSkillStatus) {
-      const vr = await VerificationRequest.findById(id);
-      if (vr && vr.student_skill_status_id) {
-        studentSkillStatus = await StudentSkillStatus.findById(
-          vr.student_skill_status_id
-        );
+    // Check if id is an existing VerificationRequest (e.g. Flow 3 rejected resubmission)
+    const vr = await VerificationRequest.findById(id).populate('student_skill_status_id');
+    if (vr) {
+      const studentSkillStatus = vr.student_skill_status_id;
+      if (!studentSkillStatus) {
+        return res.status(404).json({ message: 'Skill status not found' });
       }
+
+      if (studentSkillStatus.student_id.toString() !== req.user._id.toString()) {
+        return res.status(403).json({
+          message: 'You do not have permission to resubmit this request',
+        });
+      }
+
+      if (vr.status !== 'rejected') {
+        return res.status(400).json({
+          message: 'Only rejected requests can be re-submitted',
+        });
+      }
+
+      vr.status = 'pending';
+      vr.evidence_url = evidenceUrl;
+      vr.feedback = null;
+      vr.submitted_at = new Date();
+      await vr.save();
+
+      studentSkillStatus.status = 'pending';
+      await studentSkillStatus.save();
+
+      return res.status(200).json({
+        success: true,
+        request: vr,
+      });
     }
+
+    // Otherwise, id is a StudentSkillStatus ID (TON-48 expired skill resubmission)
+    let studentSkillStatus = await StudentSkillStatus.findById(id);
 
     if (!studentSkillStatus) {
       return res.status(404).json({ message: 'Skill status not found' });
@@ -294,10 +323,13 @@ const getMyRequests = async (req, res, next) => {
       return {
         _id: r._id,
         evidenceUrl: r.evidence_url,
+        evidence_url: r.evidence_url,
         status: r.status,
         feedback: r.feedback || '',
         submittedAt: r.submitted_at,
+        submitted_at: r.submitted_at,
         reviewedAt: r.reviewed_at,
+        reviewed_at: r.reviewed_at,
         skillName: skill?.name || 'Unknown Skill',
         courseName: course?.name || 'Unknown Course',
         skillId: skill?._id,

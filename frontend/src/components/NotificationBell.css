@@ -1,0 +1,309 @@
+/* Notification Bell Container & Trigger */
+.notification-bell-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.notification-bell-btn {
+  background: transparent;
+  border: none;
+  color: #565e74;
+  padding: 0.45rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notification-bell-btn:hover {
+  background-color: #f1f5f9;
+  color: #4f46e5;
+}
+
+.notification-bell-btn:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+.notification-bell-btn.active {
+  background-color: #eef2ff;
+  color: #4f46e5;
+}
+
+.notification-bell-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px #ffffff;
+  pointer-events: none;
+  animation: badgePop 0.25s ease-out;
+}
+
+@keyframes badgePop {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Notification Dropdown Panel */
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: -8px;
+  width: 380px;
+  max-width: 90vw;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 16px 36px -8px rgba(15, 23, 42, 0.15), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  z-index: 1050;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: dropdownSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Dropdown Header */
+.notification-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+}
+
+.notification-dropdown-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.notification-count-tag {
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.notification-mark-all-btn {
+  background: transparent;
+  border: none;
+  color: #6366f1;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.notification-mark-all-btn:hover {
+  color: #4338ca;
+  background-color: #f5f7ff;
+}
+
+.notification-mark-all-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Dropdown Content */
+.notification-dropdown-list {
+  max-height: 380px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-dropdown-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.notification-dropdown-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+/* Notification Item Row */
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f8fafc;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  position: relative;
+  text-align: left;
+  background: #ffffff;
+  border-left: 3px solid transparent;
+}
+
+.notification-item:hover {
+  background-color: #f8fafc;
+}
+
+.notification-item.unread {
+  background-color: #f7f9ff;
+  border-left-color: #4f46e5;
+}
+
+.notification-item.unread:hover {
+  background-color: #eef2ff;
+}
+
+/* Item Icons */
+.notification-item-icon-wrapper {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notification-item-icon-wrapper.approved {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.notification-item-icon-wrapper.rejected {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.notification-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-item-message {
+  font-size: 0.83rem;
+  color: #1e293b;
+  line-height: 1.35;
+  margin: 0 0 0.3rem 0;
+  word-break: break-word;
+}
+
+.notification-item.unread .notification-item-message {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.notification-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notification-item-time {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.notification-unread-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #4f46e5;
+  display: inline-block;
+}
+
+/* Dropdown Footer */
+.notification-dropdown-footer {
+  padding: 0.75rem 1rem;
+  background: #fafbfd;
+  border-top: 1px solid #f1f5f9;
+  text-align: center;
+}
+
+.notification-view-all-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #4f46e5;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  width: 100%;
+  padding: 0.35rem 0;
+  border-radius: 6px;
+}
+
+.notification-view-all-link:hover {
+  color: #3730a3;
+  background-color: #f1f5f9;
+}
+
+/* Empty State */
+.notification-empty-state {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.notification-empty-icon {
+  font-size: 2.5rem !important;
+  color: #94a3b8;
+}
+
+.notification-empty-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.notification-empty-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Loading State */
+.notification-loading-state {
+  padding: 2rem 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

@@ -6,7 +6,10 @@ const {
   Course,
   MicroSkill,
   StudentPassport,
+  Enrollment,
 } = require('../models');
+const notificationService = require('../services/notificationService');
+
 
 /**
  * @desc    Get verification requests for courses taught by the authenticated instructor
@@ -235,7 +238,49 @@ const approveRequest = async (req, res, next) => {
 
     const createdBadge = passport.badges[passport.badges.length - 1];
 
+    // 5. Auto-complete enrollment if all skills in this course are approved (TON-116, TON-117)
+    try {
+      const activeEnrollment = await Enrollment.findOne({
+        student_id: studentId,
+        course_id: course._id,
+        status: 'active',
+      });
+
+      if (activeEnrollment) {
+        const courseSkills = await CourseSkill.find({ course_id: course._id });
+        const totalSkillsCount = courseSkills.length;
+        const courseSkillIds = courseSkills.map((cs) => cs._id);
+
+        const approvedSkillsCount = await StudentSkillStatus.countDocuments({
+          student_id: studentId,
+          course_skill_id: { $in: courseSkillIds },
+          status: 'approved',
+        });
+
+        if (totalSkillsCount > 0 && approvedSkillsCount >= totalSkillsCount) {
+          activeEnrollment.status = 'completed';
+          activeEnrollment.completed_at = now;
+          await activeEnrollment.save();
+        }
+      }
+    } catch (enrollErr) {
+      console.error('[Auto-complete enrollment error]:', enrollErr.message);
+    }
+
+    // 6. Notify student of approval (TON-115, TON-122)
+    try {
+      await notificationService.create(
+        studentId,
+        'badge_approved',
+        `Your skill "${skillName}" in ${courseName} was approved! Badge issued.`,
+        createdBadge._id
+      );
+    } catch (notifErr) {
+      console.warn('[Notification error]:', notifErr.message);
+    }
+
     res.status(200).json({
+
       request: {
         _id: verificationRequest._id,
         status: verificationRequest.status,
@@ -273,10 +318,10 @@ const rejectRequest = async (req, res, next) => {
       path: 'student_skill_status_id',
       populate: {
         path: 'course_skill_id',
-        populate: {
-          path: 'course_id',
-          select: '_id name instructor_id',
-        },
+        populate: [
+          { path: 'course_id', select: '_id name instructor_id' },
+          { path: 'skill_id', select: '_id name' },
+        ],
       },
     });
 
@@ -320,7 +365,21 @@ const rejectRequest = async (req, res, next) => {
     studentSkillStatus.status = 'rejected';
     await studentSkillStatus.save();
 
+    // 3. Notify student of rejection (TON-115, TON-122)
+    try {
+      const skillName = courseSkill.skill_id?.name || 'Unknown Skill';
+      await notificationService.create(
+        studentSkillStatus.student_id,
+        'badge_rejected',
+        `Your request for "${skillName}" was rejected. Feedback: ${feedback.trim()}`,
+        verificationRequest._id
+      );
+    } catch (notifErr) {
+      console.warn('[Notification error]:', notifErr.message);
+    }
+
     res.status(200).json({
+
       request: {
         _id: verificationRequest._id,
         status: verificationRequest.status,

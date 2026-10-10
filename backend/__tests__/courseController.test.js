@@ -10,6 +10,7 @@ const {
   CourseSkill,
   StudentSkillStatus,
   StudentPassport,
+  Enrollment,
 } = require('../src/models');
 
 let mongoServer;
@@ -146,6 +147,38 @@ describe('Course Controller Tests (TON-72)', () => {
       expect(res.status).toBe(200);
       expect(res.body.courses).toHaveLength(1);
       expect(res.body.courses[0].name).toBe('Web Development');
+    });
+
+    it('3. Authenticated student gets enrollmentStatus per course (active or not_enrolled) [TON-126, UC-30]', async () => {
+      // Student enrolls in course1 (Web Development)
+      await Enrollment.create({
+        student_id: student._id,
+        course_id: course1._id,
+        status: 'active',
+      });
+
+      const res = await request(app)
+        .get('/api/courses')
+        .set('Authorization', `Bearer ${studentToken}`);
+
+      expect(res.status).toBe(200);
+      const webCourse = res.body.courses.find((c) => c.name === 'Web Development');
+      const dsCourse = res.body.courses.find((c) => c.name === 'Data Science');
+
+      expect(webCourse.enrollmentStatus).toBe('active');
+      expect(dsCourse.enrollmentStatus).toBe('not_enrolled');
+    });
+
+    it('4. Instructor and unauthenticated requests do not have enrollmentStatus [TON-126, UC-30]', async () => {
+      const unauthRes = await request(app).get('/api/courses');
+      expect(unauthRes.status).toBe(200);
+      expect(unauthRes.body.courses[0].enrollmentStatus).toBeUndefined();
+
+      const instRes = await request(app)
+        .get('/api/courses')
+        .set('Authorization', `Bearer ${instructor1Token}`);
+      expect(instRes.status).toBe(200);
+      expect(instRes.body.courses[0].enrollmentStatus).toBeUndefined();
     });
 
     it('3. Search with no match ?search=zzzzz returns empty array', async () => {

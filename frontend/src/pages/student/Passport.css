@@ -599,3 +599,189 @@
   max-width: 420px;
   margin: 0 auto 1.5rem auto;
 }
+
+/* 7. My Courses Section (TON-118) */
+.my-courses-section {
+  background: #ffffff;
+  border: 1px solid #e6e8ea;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.my-courses-section-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #191c1e;
+  letter-spacing: -0.01em;
+}
+
+.my-courses-empty-card {
+  border: 1px dashed #d6d9dc;
+  border-radius: 0.875rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  background-color: #fafbfc;
+}
+
+.my-courses-empty-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 9999px;
+  background-color: #e8f0fe;
+  color: #0052b4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem auto;
+}
+
+.my-courses-empty-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #191c1e;
+  margin-bottom: 0.35rem;
+}
+
+.my-courses-empty-desc {
+  font-size: 0.875rem;
+  color: #565e74;
+  max-width: 440px;
+  margin: 0 auto 1.25rem auto;
+  line-height: 1.5;
+}
+
+.my-courses-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .my-courses-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.my-courses-card {
+  background: #ffffff;
+  border: 1px solid #e6e8ea;
+  border-radius: 0.875rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.my-courses-card:hover {
+  border-color: #cdd2d6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+.my-courses-card.completed-border {
+  border-left: 4px solid #006e4c;
+}
+
+.my-courses-course-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #565e74;
+  background-color: #f2f4f6;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.my-courses-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+}
+
+.my-courses-status-chip.active {
+  background-color: #e8f0fe;
+  color: #0052b4;
+}
+
+.my-courses-status-chip.completed {
+  background-color: #e6f5ee;
+  color: #006e4c;
+}
+
+.my-courses-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #0052b4;
+}
+
+.my-courses-card-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #191c1e;
+  margin: 0.25rem 0 0.35rem 0;
+  line-height: 1.3;
+}
+
+.my-courses-card-desc {
+  font-size: 0.85rem;
+  color: #565e74;
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.my-courses-progress-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #565e74;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.my-courses-progress-stat {
+  font-size: 0.8rem;
+  color: #191c1e;
+}
+
+.my-courses-progress-track {
+  width: 100%;
+  height: 8px;
+  background-color: #f0f2f4;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-top: 0.35rem;
+}
+
+.my-courses-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0052b4, #3b82f6);
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.my-courses-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #f0f2f4;
+}

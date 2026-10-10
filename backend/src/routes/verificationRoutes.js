@@ -18,6 +18,7 @@ const {
   approveRequest,
   rejectRequest,
 } = require('../controllers/reviewController');
+const { getGithubInfo } = require('../controllers/githubController');
 
 // --- Instructor Review Routes (TON-87) ---
 // Must be mounted before parameterized /:id routes
@@ -41,6 +42,14 @@ router.put(
   restrictTo('instructor'),
   validateRejectVerification,
   rejectRequest
+);
+
+// GET /api/verification-requests/:id/github-info (Instructor only, TON-119)
+router.get(
+  '/:id/github-info',
+  protect,
+  restrictTo('instructor'),
+  getGithubInfo
 );
 
 // --- Student Verification Routes (TON-45) ---

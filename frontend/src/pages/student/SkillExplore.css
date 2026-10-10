@@ -331,6 +331,49 @@
   white-space: nowrap;
 }
 
+/* Enroll Button (TON-118) */
+.explore-enroll-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.8rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.785rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  border: 1px solid #0052b4;
+  background-color: #0052b4;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.explore-enroll-btn:hover {
+  background-color: #003e8a;
+  border-color: #003e8a;
+  transform: translateY(-1px);
+}
+
+.explore-enroll-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.explore-enroll-btn.enrolled {
+  background-color: #e6f5ee;
+  border-color: #bbf0d7;
+  color: #006e4c;
+}
+
+.explore-enroll-btn.enrolled:hover {
+  background-color: #d1f0e2;
+  border-color: #a4ebd0;
+  color: #005239;
+}
+
 .explore-chevron-icon {
   color: #565e74;
   font-size: 1.35rem;

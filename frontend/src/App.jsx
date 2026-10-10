@@ -14,8 +14,11 @@ import CourseManagementPage from './pages/instructor/CourseManagementPage';
 import SkillManagementPage from './pages/instructor/SkillManagementPage';
 import VerificationReviewPage from './pages/instructor/VerificationReviewPage';
 import AnalyticsDashboardPage from './pages/instructor/AnalyticsDashboardPage';
+import EnrolledStudentsPage from './pages/instructor/EnrolledStudentsPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 function App() {
+
   return (
     <AuthProvider>
       <Router>
@@ -43,12 +46,19 @@ function App() {
                 <Route path="/instructor/dashboard" element={<Navigate to="/instructor/courses" replace />} />
                 <Route path="/instructor/courses" element={<CourseManagementPage />} />
                 <Route path="/instructor/courses/:courseId/skills" element={<SkillManagementPage />} />
+                <Route path="/instructor/courses/:courseId/students" element={<EnrolledStudentsPage />} />
                 <Route path="/instructor/requests" element={<VerificationReviewPage />} />
                 <Route path="/instructor/analytics" element={<AnalyticsDashboardPage />} />
               </Route>
 
+              {/* Shared Authenticated Routes */}
+              <Route element={<ProtectedRoute allowedRoles={['student', 'instructor']} />}>
+                <Route path="/notifications" element={<NotificationsPage />} />
+              </Route>
+
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/explore" replace />} />
+
             </Routes>
           </main>
           <Footer />

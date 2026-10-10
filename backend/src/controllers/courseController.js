@@ -4,6 +4,7 @@ const {
   CourseSkill,
   StudentSkillStatus,
   StudentPassport,
+  Enrollment,
 } = require('../models');
 
 /**
@@ -24,13 +25,23 @@ const getCourses = async (req, res, next) => {
       .populate('instructor_id', 'name')
       .sort({ createdAt: -1 });
 
+    let enrollmentMap = null;
+    if (req.user && req.user.role === 'student') {
+      const studentEnrollments = await Enrollment.find({
+        student_id: req.user._id,
+      });
+      enrollmentMap = new Map(
+        studentEnrollments.map((e) => [e.course_id.toString(), e.status])
+      );
+    }
+
     const courses = await Promise.all(
       rawCourses.map(async (course) => {
         const skillCount = await CourseSkill.countDocuments({
           course_id: course._id,
         });
 
-        return {
+        const courseItem = {
           _id: course._id,
           name: course.name,
           description: course.description,
@@ -43,6 +54,13 @@ const getCourses = async (req, res, next) => {
           skillCount,
           createdAt: course.createdAt,
         };
+
+        if (enrollmentMap) {
+          courseItem.enrollmentStatus =
+            enrollmentMap.get(course._id.toString()) || 'not_enrolled';
+        }
+
+        return courseItem;
       })
     );
 

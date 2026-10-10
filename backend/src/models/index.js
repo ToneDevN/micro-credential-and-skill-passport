@@ -7,6 +7,7 @@ const VerificationRequest = require('./VerificationRequest');
 const { Badge, badgeSchema } = require('./Badge');
 const StudentPassport = require('./StudentPassport');
 const Enrollment = require('./Enrollment');
+const Notification = require('./Notification');
 
 module.exports = {
   User,
@@ -19,4 +20,6 @@ module.exports = {
   badgeSchema,
   StudentPassport,
   Enrollment,
+  Notification,
 };
+

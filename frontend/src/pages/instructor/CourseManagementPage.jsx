@@ -305,6 +305,14 @@ const CourseManagementPage = () => {
                   >
                     Manage Skills
                   </Link>
+                  <Link
+                    to={`/instructor/courses/${course._id}/students`}
+                    className="course-mgmt-btn-students"
+                    title="View Enrolled Students"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">group</span>
+                    <span>Students</span>
+                  </Link>
                   <button
                     type="button"
                     className="course-mgmt-btn-icon"

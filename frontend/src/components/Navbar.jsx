@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 import './Navigation.css';
 
 const Navbar = () => {
@@ -98,18 +99,11 @@ const Navbar = () => {
         <div className="stitch-nav-trailing">
           {isAuthenticated ? (
             <>
-              {/* Notifications Icon Button */}
-              <button
-                type="button"
-                className="stitch-nav-bell-btn d-none d-sm-flex"
-                aria-label="Notifications"
-                title="Notifications"
-              >
-                <span className="material-symbols-outlined">notifications</span>
-                <span className="stitch-nav-bell-badge"></span>
-              </button>
+              {/* Notifications Bell Component */}
+              <NotificationBell />
 
               <div className="stitch-nav-divider d-none d-sm-block"></div>
+
 
               {/* User Profile Info */}
               <div className="stitch-user-chip">
@@ -213,6 +207,17 @@ const Navbar = () => {
               </Link>
             </>
           )}
+
+          {isAuthenticated && (
+            <Link
+              to="/notifications"
+              className={`stitch-mobile-link ${isActive('/notifications') ? 'active' : ''}`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Notifications
+            </Link>
+          )}
+
 
           {!isAuthenticated ? (
             <div className="stitch-mobile-auth-group">

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, restrictTo } = require('../middleware/auth');
+const { protect, restrictTo, optionalAuth } = require('../middleware/auth');
 const {
   validateCreateCourse,
   validateUpdateCourse,
@@ -22,9 +22,14 @@ const {
   updateSkill,
   deleteSkill,
 } = require('../controllers/skillController');
+const {
+  enrollCourse,
+  unenrollCourse,
+  getEnrolledStudents,
+} = require('../controllers/enrollmentController');
 
-// GET /api/courses or /api/v1/courses
-router.get('/', getCourses);
+// GET /api/courses or /api/v1/courses (Public, optional student auth for enrollmentStatus, UC-30)
+router.get('/', optionalAuth, getCourses);
 
 // GET /api/courses/my or /api/v1/courses/my (Instructor only)
 router.get('/my', protect, restrictTo('instructor'), getMyCourses);
@@ -34,6 +39,23 @@ router.get('/:id', getCourseById);
 
 // GET /api/courses/:courseId/public-skills (Public & student exploration)
 router.get('/:courseId/public-skills', getPublicCourseSkills);
+
+// GET /api/courses/:courseId/enrolled-students (Instructor only, UC-34, TON-128)
+router.get(
+  '/:courseId/enrolled-students',
+  protect,
+  restrictTo('instructor'),
+  getEnrolledStudents
+);
+
+// POST /api/courses/:courseId/enroll (Student only, UC-31)
+router.post('/:courseId/enroll', protect, restrictTo('student'), enrollCourse);
+
+// PUT /api/courses/:courseId/unenroll (Student only, UC-33, TON-127)
+router.put('/:courseId/unenroll', protect, restrictTo('student'), unenrollCourse);
+
+// DELETE /api/courses/:courseId/enroll (Student only, backward-compatibility alias)
+router.delete('/:courseId/enroll', protect, restrictTo('student'), unenrollCourse);
 
 // GET /api/courses/:courseId/skills or /api/v1/courses/:courseId/skills (Instructor only, TON-84)
 router.get('/:courseId/skills', protect, restrictTo('instructor'), getCourseSkills);

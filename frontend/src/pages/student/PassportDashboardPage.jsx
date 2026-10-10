@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
+import MyCoursesSection from '../../components/MyCoursesSection';
 import './Passport.css';
 
 const PassportDashboardPage = () => {
@@ -220,6 +221,9 @@ const PassportDashboardPage = () => {
             </div>
           </div>
         </section>
+
+        {/* Enrolled Courses Progress Section (TON-118) */}
+        <MyCoursesSection />
 
         {/* 3. Tab Navigation */}
         <nav aria-label="Passport Sections" className="passport-tabs-nav" role="tablist">

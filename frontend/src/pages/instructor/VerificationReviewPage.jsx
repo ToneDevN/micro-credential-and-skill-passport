@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
+import RepositoryInfoPanel from '../../components/RepositoryInfoPanel';
 import './VerificationReview.css';
 
 const VerificationReviewPage = () => {
@@ -334,18 +335,24 @@ const VerificationReviewPage = () => {
                         {/* Evidence */}
                         <td>
                           {req.evidence_url ? (
-                            <a
-                              href={req.evidence_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="review-mgmt-evidence-link"
-                              title={req.evidence_url}
-                            >
-                              <span>{req.evidence_url.replace(/^https?:\/\//, '')}</span>
-                              <span className="material-symbols-outlined text-[15px]">
-                                open_in_new
-                              </span>
-                            </a>
+                            <div>
+                              <a
+                                href={req.evidence_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="review-mgmt-evidence-link"
+                                title={req.evidence_url}
+                              >
+                                <span>{req.evidence_url.replace(/^https?:\/\//, '')}</span>
+                                <span className="material-symbols-outlined text-[15px]">
+                                  open_in_new
+                                </span>
+                              </a>
+                              <RepositoryInfoPanel
+                                requestId={req._id}
+                                evidenceUrl={req.evidence_url}
+                              />
+                            </div>
                           ) : (
                             <span className="text-muted">—</span>
                           )}
@@ -468,9 +475,9 @@ const VerificationReviewPage = () => {
                         <span className="review-mobile-row-val text-muted">{formatDate(req.submitted_at)}</span>
                       </div>
                       {req.evidence_url && (
-                        <div className="review-mobile-row">
+                        <div className="review-mobile-row flex-column align-items-start gap-1">
                           <span className="review-mobile-row-key">Evidence:</span>
-                          <span className="review-mobile-row-val">
+                          <span className="review-mobile-row-val w-100">
                             <a
                               href={req.evidence_url}
                               target="_blank"
@@ -480,6 +487,10 @@ const VerificationReviewPage = () => {
                               <span>{req.evidence_url.replace(/^https?:\/\//, '')}</span>
                               <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                             </a>
+                            <RepositoryInfoPanel
+                              requestId={req._id}
+                              evidenceUrl={req.evidence_url}
+                            />
                           </span>
                         </div>
                       )}

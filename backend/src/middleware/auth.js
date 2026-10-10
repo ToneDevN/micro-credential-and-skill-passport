@@ -76,8 +76,46 @@ const restrictTo = (...roles) => {
   };
 };
 
+const optionalAuth = async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer ')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  if (!token || tokenBlacklist.has(token)) {
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'your_super_secret_key_change_in_production'
+    );
+
+    const user = await User.findById(decoded.id).select('-password_hash');
+    if (user) {
+      req.user = {
+        _id: user._id,
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      };
+    }
+  } catch {
+    // Ignore invalid tokens for optional auth
+  }
+
+  next();
+};
+
 module.exports = {
   protect,
+  optionalAuth,
   restrictTo,
   authorize: restrictTo, // alias for backwards compatibility
   invalidateToken,

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import './SkillExplore.css';
 
 const SkillExplorePage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlParam =
     searchParams.get('q') ||
@@ -24,8 +25,91 @@ const SkillExplorePage = () => {
   const [loadingCourseId, setLoadingCourseId] = useState(null);
   const [activeFilter, setActiveFilter] = useState(urlParam || 'All');
   const [error, setError] = useState('');
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState(new Set());
+  const [enrollLoadingId, setEnrollLoadingId] = useState(null);
 
   const debounceTimerRef = useRef(null);
+
+  // Fetch student enrollments if logged in as student (TON-118)
+  useEffect(() => {
+    let ignore = false;
+    if (user && user.role === 'student') {
+      api
+        .get('/students/me/enrollments')
+        .then((res) => {
+          if (!ignore) {
+            const ids = (res.data.enrollments || []).map((e) =>
+              (e.course?._id || e.course?._id || e.course || '').toString()
+            );
+            setEnrolledCourseIds(new Set(ids));
+          }
+        })
+        .catch((err) => {
+          console.error('Error fetching enrollments:', err);
+        });
+    } else {
+      setEnrolledCourseIds(new Set());
+    }
+    return () => {
+      ignore = true;
+    };
+  }, [user]);
+
+  // Handle Enroll / Enrolled toggle
+  const handleToggleEnroll = async (e, courseId) => {
+    e.stopPropagation();
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    if (user.role !== 'student') {
+      return;
+    }
+
+    const cIdStr = courseId.toString();
+    const isCurrentlyEnrolled = enrolledCourseIds.has(cIdStr);
+
+    if (isCurrentlyEnrolled) {
+      if (!window.confirm('Do you want to unenroll from this course?')) {
+        return;
+      }
+      // Optimistic removal
+      setEnrolledCourseIds((prev) => {
+        const next = new Set(prev);
+        next.delete(cIdStr);
+        return next;
+      });
+      try {
+        setEnrollLoadingId(cIdStr);
+        await api.put(`/courses/${courseId}/unenroll`);
+      } catch (err) {
+        // Revert on error
+        setEnrolledCourseIds((prev) => new Set([...prev, cIdStr]));
+        const msg = err.response?.data?.message || 'Failed to unenroll';
+        alert(msg);
+      } finally {
+        setEnrollLoadingId(null);
+      }
+    } else {
+      // Optimistic enrollment
+      setEnrolledCourseIds((prev) => new Set([...prev, cIdStr]));
+      try {
+        setEnrollLoadingId(cIdStr);
+        await api.post(`/courses/${courseId}/enroll`);
+      } catch (err) {
+        // Revert on error
+        setEnrolledCourseIds((prev) => {
+          const next = new Set(prev);
+          next.delete(cIdStr);
+          return next;
+        });
+        const msg = err.response?.data?.message || 'Failed to enroll in course';
+        alert(msg);
+      } finally {
+        setEnrollLoadingId(null);
+      }
+    }
+  };
 
   // Fetch all courses on mount
   useEffect(() => {
@@ -34,7 +118,14 @@ const SkillExplorePage = () => {
       .get('/courses')
       .then((res) => {
         if (!ignore) {
-          setCourses(res.data.courses || []);
+          const fetchedCourses = res.data.courses || [];
+          setCourses(fetchedCourses);
+          const activeIds = fetchedCourses
+            .filter((c) => c.enrollmentStatus === 'active')
+            .map((c) => c._id.toString());
+          if (activeIds.length > 0) {
+            setEnrolledCourseIds((prev) => new Set([...prev, ...activeIds]));
+          }
           setLoading(false);
         }
       })
@@ -433,6 +524,52 @@ const SkillExplorePage = () => {
                             {course.skillCount}{' '}
                             {course.skillCount === 1 ? 'skill' : 'skills'}
                           </span>
+
+                          {/* Enroll / Enrolled Action Button (TON-118) */}
+                          {(!user || user.role === 'student') && (
+                            <button
+                              type="button"
+                              className={`explore-enroll-btn ${
+                                enrolledCourseIds.has(course._id.toString()) ? 'enrolled' : ''
+                              }`}
+                              onClick={(e) => handleToggleEnroll(e, course._id)}
+                              disabled={enrollLoadingId === course._id.toString()}
+                              title={
+                                enrolledCourseIds.has(course._id.toString())
+                                  ? 'Click to unenroll'
+                                  : 'Enroll in course'
+                              }
+                            >
+                              {enrollLoadingId === course._id.toString() ? (
+                                <span
+                                  className="spinner-border spinner-border-sm"
+                                  role="status"
+                                  style={{ width: '0.8rem', height: '0.8rem' }}
+                                ></span>
+                              ) : enrolledCourseIds.has(course._id.toString()) ? (
+                                <>
+                                  <span
+                                    className="material-symbols-outlined"
+                                    style={{ fontSize: 15 }}
+                                  >
+                                    check
+                                  </span>
+                                  <span>Enrolled ✓</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span
+                                    className="material-symbols-outlined"
+                                    style={{ fontSize: 15 }}
+                                  >
+                                    bookmark_add
+                                  </span>
+                                  <span>Enroll</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+
                           <span
                             className={`material-symbols-outlined explore-chevron-icon ${
                               isExpanded ? 'rotated' : ''

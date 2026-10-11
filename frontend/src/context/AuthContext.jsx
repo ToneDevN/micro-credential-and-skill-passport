@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext(null);
@@ -70,6 +70,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await api.get('/auth/me');
+      setUser(res.data.user);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      return res.data.user;
+    } catch (error) {
+      return null;
+    }
+  }, []);
+
   const value = {
     user,
     token,
@@ -78,7 +89,10 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    refreshUser,
+    setUser,
   };
+
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

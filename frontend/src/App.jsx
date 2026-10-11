@@ -16,6 +16,7 @@ import VerificationReviewPage from './pages/instructor/VerificationReviewPage';
 import AnalyticsDashboardPage from './pages/instructor/AnalyticsDashboardPage';
 import EnrolledStudentsPage from './pages/instructor/EnrolledStudentsPage';
 import NotificationsPage from './pages/NotificationsPage';
+import SettingsPage from './pages/SettingsPage';
 
 function App() {
 
@@ -54,7 +55,9 @@ function App() {
               {/* Shared Authenticated Routes */}
               <Route element={<ProtectedRoute allowedRoles={['student', 'instructor']} />}>
                 <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
               </Route>
+
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/explore" replace />} />

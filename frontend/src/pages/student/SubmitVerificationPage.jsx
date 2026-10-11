@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import GithubRepoPickerModal from '../../components/GithubRepoPickerModal';
 import './Verification.css';
+
 
 const SubmitVerificationPage = () => {
   const navigate = useNavigate();
@@ -9,15 +12,19 @@ const SubmitVerificationPage = () => {
   const initialCourseId = searchParams.get('courseId') || '';
   const initialSkillId = searchParams.get('skillId') || '';
 
+  const { user } = useAuth();
   const [courses, setCourses] = useState([]);
   const [selectedCourseId, setSelectedCourseId] = useState(initialCourseId);
   const [skills, setSkills] = useState([]);
   const [selectedCourseSkillId, setSelectedCourseSkillId] = useState(initialSkillId);
   const [evidenceUrl, setEvidenceUrl] = useState('');
+  const [isRepoPickerOpen, setIsRepoPickerOpen] = useState(false);
+  const [selectedRepoName, setSelectedRepoName] = useState('');
 
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [loadingSkills, setLoadingSkills] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
@@ -243,9 +250,59 @@ const SubmitVerificationPage = () => {
 
             {/* Field 3 — Evidence URL */}
             <div className="verification-form-group">
-              <label className="verification-label" htmlFor="evidence-url">
-                Evidence URL
-              </label>
+              <div className="d-flex justify-content-between align-items-center mb-1">
+                <label className="verification-label mb-0" htmlFor="evidence-url">
+                  Evidence URL
+                </label>
+                {user?.github_connected_status === 'connected' ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 py-1 px-2"
+                    style={{ fontSize: '0.8rem', borderRadius: '6px' }}
+                    onClick={() => setIsRepoPickerOpen(true)}
+                    disabled={submitting}
+                  >
+                    <svg height="14" width="14" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                    </svg>
+                    <span>Select from GitHub</span>
+                  </button>
+                ) : (
+                  <Link
+                    to="/settings"
+                    className="text-decoration-none d-inline-flex align-items-center gap-1 text-primary"
+                    style={{ fontSize: '0.8rem', fontWeight: 600 }}
+                  >
+                    <svg height="14" width="14" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                    </svg>
+                    <span>Connect GitHub ก่อน</span>
+                  </Link>
+                )}
+              </div>
+
+              {selectedRepoName && (
+                <div className="d-flex align-items-center gap-2 mb-2">
+                  <span className="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1 py-1 px-2">
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                      check_circle
+                    </span>
+                    <span>✓ {selectedRepoName}</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-link p-0 text-muted small text-decoration-none"
+                    style={{ fontSize: '0.775rem' }}
+                    onClick={() => {
+                      setSelectedRepoName('');
+                      setEvidenceUrl('');
+                    }}
+                  >
+                    Enter URL manually
+                  </button>
+                </div>
+              )}
+
               <div className="verification-input-wrap">
                 <div className="verification-input-icon">
                   <span className="material-symbols-outlined text-[18px]">link</span>
@@ -258,7 +315,10 @@ const SubmitVerificationPage = () => {
                   placeholder="https://github.com/your-username/project-repo"
                   value={evidenceUrl}
                   disabled={submitting}
-                  onChange={(e) => setEvidenceUrl(e.target.value)}
+                  onChange={(e) => {
+                    setEvidenceUrl(e.target.value);
+                    if (selectedRepoName) setSelectedRepoName('');
+                  }}
                   required
                 />
               </div>
@@ -267,6 +327,7 @@ const SubmitVerificationPage = () => {
                 <span>Provide a link to your work (GitHub, portfolio, Google Drive, etc.)</span>
               </p>
             </div>
+
 
             <hr className="border-t border-slate-200 my-4" />
 
@@ -345,9 +406,21 @@ const SubmitVerificationPage = () => {
             <span>Back to My Requests</span>
           </Link>
         </div>
+
+        {/* GitHub Repository Picker Modal (UC-37, UC-38, TON-137) */}
+        <GithubRepoPickerModal
+          isOpen={isRepoPickerOpen}
+          onClose={() => setIsRepoPickerOpen(false)}
+          onSelect={(repo) => {
+            setEvidenceUrl(repo.html_url);
+            setSelectedRepoName(repo.name);
+            setIsRepoPickerOpen(false);
+          }}
+        />
       </div>
     </div>
   );
 };
 
 export default SubmitVerificationPage;
+

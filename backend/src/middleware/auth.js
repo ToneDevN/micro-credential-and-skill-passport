@@ -17,7 +17,10 @@ const protect = async (req, res, next) => {
     req.headers.authorization.startsWith('Bearer ')
   ) {
     token = req.headers.authorization.split(' ')[1];
+  } else if (req.query && req.query.token) {
+    token = req.query.token;
   }
+
 
   if (!token) {
     return res.status(401).json({
@@ -53,7 +56,10 @@ const protect = async (req, res, next) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      github_username: user.github_username || null,
+      github_connected_status: user.github_connected_status || 'not_connected',
     };
+
 
     next();
   } catch (error) {
@@ -104,7 +110,10 @@ const optionalAuth = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        github_username: user.github_username || null,
+        github_connected_status: user.github_connected_status || 'not_connected',
       };
+
     }
   } catch {
     // Ignore invalid tokens for optional auth

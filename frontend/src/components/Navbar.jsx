@@ -102,17 +102,26 @@ const Navbar = () => {
               {/* Notifications Bell Component */}
               <NotificationBell />
 
+              {/* Settings Action Button */}
+              <Link
+                to="/settings"
+                className={`stitch-nav-bell-btn d-none d-sm-flex ${isActive('/settings') ? 'active' : ''}`}
+                title="Settings"
+                aria-label="Settings"
+              >
+                <span className="material-symbols-outlined">settings</span>
+              </Link>
+
               <div className="stitch-nav-divider d-none d-sm-block"></div>
 
-
               {/* User Profile Info */}
-              <div className="stitch-user-chip">
+              <Link to="/settings" className="stitch-user-chip" title="View settings">
                 <div className="stitch-user-avatar">{userInitial}</div>
                 <div className="stitch-user-info d-none d-md-flex">
                   <span className="stitch-user-name">{user?.name}</span>
                   <span className="stitch-user-role">{user?.role}</span>
                 </div>
-              </div>
+              </Link>
 
               {/* Logout Action Button */}
               <button
@@ -128,6 +137,7 @@ const Navbar = () => {
               </button>
             </>
           ) : (
+
             <div className="d-flex align-items-center gap-2">
               <Link to="/login" className="stitch-auth-btn-signin d-none d-sm-inline-flex">
                 Sign In
@@ -209,14 +219,24 @@ const Navbar = () => {
           )}
 
           {isAuthenticated && (
-            <Link
-              to="/notifications"
-              className={`stitch-mobile-link ${isActive('/notifications') ? 'active' : ''}`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Notifications
-            </Link>
+            <>
+              <Link
+                to="/notifications"
+                className={`stitch-mobile-link ${isActive('/notifications') ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Notifications
+              </Link>
+              <Link
+                to="/settings"
+                className={`stitch-mobile-link ${isActive('/settings') ? 'active' : ''}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Settings
+              </Link>
+            </>
           )}
+
 
 
           {!isAuthenticated ? (

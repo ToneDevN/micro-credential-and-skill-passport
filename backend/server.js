@@ -14,9 +14,12 @@ const passportRoutes = require('./src/routes/passportRoutes');
 const analyticsRoutes = require('./src/routes/analyticsRoutes');
 const enrollmentRoutes = require('./src/routes/enrollmentRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
+const githubAuthRoutes = require('./src/routes/githubAuthRoutes');
+const userRoutes = require('./src/routes/userRoutes');
 const errorHandler = require('./src/middleware/errorHandler');
 
 const app = express();
+
 const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB if not in test environment
@@ -69,10 +72,13 @@ app.use('/api/v1/passport', passportRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/enrollments', enrollmentRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/auth/github', githubAuthRoutes);
+app.use('/api/v1/users', userRoutes);
 
 // Backwards-compatible aliases
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/auth/github', githubAuthRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/instructor', instructorRoutes);
@@ -83,13 +89,17 @@ app.use('/api/passport', passportRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/users', userRoutes);
 
 // Direct aliases without /api prefix
+app.use('/auth/github', githubAuthRoutes);
 app.use('/courses', courseRoutes);
 app.use('/students', studentRoutes);
 app.use('/enrollments', enrollmentRoutes);
 app.use('/verification-requests', verificationRoutes);
 app.use('/notifications', notificationRoutes);
+app.use('/users', userRoutes);
+
 
 
 // Root route

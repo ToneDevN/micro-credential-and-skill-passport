@@ -21,10 +21,15 @@ api.interceptors.request.use(
 );
 
 // Response interceptor: on 401, clear storage and auto-redirect to /login
+// (Ignore if 401 is due to GitHub TOKEN_EXPIRED from /users/me/github/repos)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      error.response.data?.error !== 'TOKEN_EXPIRED'
+    ) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       if (

@@ -52,7 +52,10 @@ const register = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        github_username: user.github_username || null,
+        github_connected_status: user.github_connected_status || 'not_connected',
       },
+
     });
   } catch (error) {
     next(error);
@@ -92,7 +95,10 @@ const login = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        github_username: user.github_username || null,
+        github_connected_status: user.github_connected_status || 'not_connected',
       },
+
     });
   } catch (error) {
     next(error);

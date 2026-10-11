@@ -13,6 +13,8 @@ services:
   backend:
     build: ./backend
     container_name: skill-passport-backend
+    env_file:
+      - ./backend/.env
     ports:
       - "5001:5000"
     environment:
@@ -34,6 +36,8 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+
 
 volumes:
   mongo-data:

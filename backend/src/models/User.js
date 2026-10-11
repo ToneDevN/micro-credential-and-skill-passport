@@ -28,6 +28,19 @@ const userSchema = new mongoose.Schema(
       },
       required: [true, 'Role is required'],
     },
+    github_username: {
+      type: String,
+      default: null,
+    },
+    github_access_token: {
+      type: String,
+      default: null,
+    },
+    github_connected_status: {
+      type: String,
+      enum: ['connected', 'not_connected'],
+      default: 'not_connected',
+    },
   },
   {
     timestamps: true,
@@ -63,13 +76,15 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password_hash);
 };
 
-// Exclude password_hash from JSON serialization
+// Exclude password_hash and sensitive tokens from JSON serialization
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password_hash;
   delete obj._plainPassword;
+  delete obj.github_access_token;
   return obj;
 };
+
 
 const User = mongoose.model('User', userSchema);
 

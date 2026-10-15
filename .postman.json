@@ -1,0 +1,26 @@
+{
+  "version": "0.1",
+  "project": {
+    "name": "micro-credential-and-skill-passport",
+    "baseUrl": "http://localhost:5000"
+  },
+  "default": {
+    "workspace": "main",
+    "collection": "micro-credential-and-skill-passport"
+  },
+  "workspaces": {
+    "main": {
+      "id": "78ba3706-9e26-4d6c-84bc-86a300ff61ca",
+      "name": "My Workspace",
+      "type": "team"
+    }
+  },
+  "collections": {
+    "micro-credential-and-skill-passport": {
+      "id": "91a86fa8-65cb-4625-acd2-284b8510f724",
+      "uid": "16897540-91a86fa8-65cb-4625-acd2-284b8510f724",
+      "name": "micro-credential-and-skill-passport",
+      "workspace": "main"
+    }
+  }
+}

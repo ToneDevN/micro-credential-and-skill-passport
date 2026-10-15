@@ -17,6 +17,10 @@ const microSkillSchema = new mongoose.Schema(
       required: [true, 'Skill verification criteria is required'],
       trim: true,
     },
+    is_open_for_verification: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

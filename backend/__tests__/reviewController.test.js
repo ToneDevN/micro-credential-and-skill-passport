@@ -183,10 +183,10 @@ describe('Verification Review API Tests (TON-88)', () => {
         .set('Authorization', `Bearer ${instructor1Token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.requests).toBeDefined();
-      expect(res.body.requests).toHaveLength(2);
+      expect(res.body.data).toBeDefined();
+      expect(res.body.data).toHaveLength(2);
 
-      const req1 = res.body.requests.find((r) => r.skill.name === 'Express.js');
+      const req1 = res.body.data.find((r) => r.skill.name === 'Express.js');
       expect(req1).toBeDefined();
       expect(req1.student.name).toBe('Alice');
       expect(req1.student.email).toBe('alice@uni.ac.th');
@@ -201,9 +201,9 @@ describe('Verification Review API Tests (TON-88)', () => {
         .set('Authorization', `Bearer ${instructor1Token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.requests).toHaveLength(1);
-      expect(res.body.requests[0].status).toBe('approved');
-      expect(res.body.requests[0].student.name).toBe('Bob');
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].status).toBe('approved');
+      expect(res.body.data[0].student.name).toBe('Bob');
     });
 
     it('3. Filter by courseId returns only requests for that course', async () => {
@@ -212,8 +212,8 @@ describe('Verification Review API Tests (TON-88)', () => {
         .set('Authorization', `Bearer ${instructor1Token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.requests).toHaveLength(2);
-      expect(res.body.requests.every((r) => r.course._id === course1._id.toString())).toBe(true);
+      expect(res.body.data).toHaveLength(2);
+      expect(res.body.data.every((r) => r.course._id === course1._id.toString())).toBe(true);
     });
 
     it('4. Sort by date ascending returns oldest first', async () => {
@@ -222,9 +222,9 @@ describe('Verification Review API Tests (TON-88)', () => {
         .set('Authorization', `Bearer ${instructor1Token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.requests).toHaveLength(2);
-      const date1 = new Date(res.body.requests[0].submitted_at).getTime();
-      const date2 = new Date(res.body.requests[1].submitted_at).getTime();
+      expect(res.body.data).toHaveLength(2);
+      const date1 = new Date(res.body.data[0].submitted_at).getTime();
+      const date2 = new Date(res.body.data[1].submitted_at).getTime();
       expect(date1).toBeLessThanOrEqual(date2);
     });
 
@@ -242,7 +242,7 @@ describe('Verification Review API Tests (TON-88)', () => {
         .set('Authorization', `Bearer ${emptyToken}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.requests).toEqual([]);
+      expect(res.body.data).toEqual([]);
       expect(res.body.total).toBe(0);
     });
 
@@ -252,7 +252,7 @@ describe('Verification Review API Tests (TON-88)', () => {
         .set('Authorization', `Bearer ${instructor1Token}`);
 
       expect(res.status).toBe(200);
-      const ids = res.body.requests.map((r) => r._id);
+      const ids = res.body.data.map((r) => r._id);
       expect(ids).not.toContain(vr4._id.toString());
     });
 
@@ -461,6 +461,157 @@ describe('Verification Review API Tests (TON-88)', () => {
 
       expect(res.status).toBe(403);
       expect(res.body.message).toMatch(/Forbidden|own this course/i);
+    });
+  });
+
+  describe('UC-48 / TON-157: Instructor All-History Filter', () => {
+    let rejectedRequest;
+
+    beforeEach(async () => {
+      // Create student3 and a rejected request for instructor1
+      const student3 = await User.create({
+        name: 'Charlie',
+        email: 'charlie@uni.ac.th',
+        password: 'password123',
+        role: 'student',
+      });
+
+      const studentSkillStatus = await StudentSkillStatus.create({
+        student_id: student3._id,
+        course_skill_id: cs1._id,
+        status: 'rejected',
+      });
+
+      rejectedRequest = await VerificationRequest.create({
+        student_skill_status_id: studentSkillStatus._id,
+        evidence_url: 'https://github.com/charlie/rejected-work',
+        status: 'rejected',
+        feedback: 'Incomplete implementation of endpoints.',
+        reviewed_by: instructor1._id,
+        reviewed_at: new Date(),
+        submitted_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+      });
+    });
+
+    it('1. ?status=all returns requests of all 3 statuses for the instructor\'s courses', async () => {
+      const res = await request(app)
+        .get('/api/verification-requests/instructor?status=all')
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toBeDefined();
+      const statuses = res.body.data.map((r) => r.status);
+      expect(statuses).toContain('pending');
+      expect(statuses).toContain('approved');
+      expect(statuses).toContain('rejected');
+      expect(res.body.counts).toBeDefined();
+      expect(res.body.counts.all).toBeGreaterThanOrEqual(4);
+      expect(res.body.counts.pending).toBeGreaterThanOrEqual(2);
+      expect(res.body.counts.approved).toBeGreaterThanOrEqual(1);
+      expect(res.body.counts.rejected).toBeGreaterThanOrEqual(1);
+    });
+
+    it('2. No status param defaults to pending-only (unchanged behavior)', async () => {
+      const res = await request(app)
+        .get('/api/verification-requests/instructor')
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toBeDefined();
+      expect(res.body.data.length).toBeGreaterThan(0);
+      expect(res.body.data.every((r) => r.status === 'pending')).toBe(true);
+    });
+
+    it('3. ?status=approved returns only approved requests', async () => {
+      const res = await request(app)
+        .get('/api/verification-requests/instructor?status=approved')
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].status).toBe('approved');
+      expect(res.body.data[0]._id).toBe(vr3._id.toString());
+      expect(res.body.data[0].reviewed_by).toBeDefined();
+      expect(res.body.data[0].reviewed_by.name).toBe('Dr. Smith');
+    });
+
+    it('4. ?status=rejected returns only rejected requests with feedback included', async () => {
+      const res = await request(app)
+        .get('/api/verification-requests/instructor?status=rejected')
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].status).toBe('rejected');
+      expect(res.body.data[0].feedback).toBe('Incomplete implementation of endpoints.');
+      expect(res.body.data[0]._id).toBe(rejectedRequest._id.toString());
+    });
+
+    it('5. Instructor-course scoping still enforced under ?status=all (other instructors\' requests never leak)', async () => {
+      const res = await request(app)
+        .get('/api/verification-requests/instructor?status=all')
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      const reqIds = res.body.data.map((r) => r._id);
+      expect(reqIds).not.toContain(vr4._id.toString());
+    });
+
+    it('6. reviewed_at is null for pending, populated for approved/rejected', async () => {
+      const res = await request(app)
+        .get('/api/verification-requests/instructor?status=all')
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      const pendingReq = res.body.data.find((r) => r.status === 'pending');
+      const approvedReq = res.body.data.find((r) => r.status === 'approved');
+      const rejectedReq = res.body.data.find((r) => r.status === 'rejected');
+
+      expect(pendingReq).toBeDefined();
+      expect(pendingReq.reviewed_at).toBeNull();
+
+      expect(approvedReq).toBeDefined();
+      expect(approvedReq.reviewed_at).not.toBeNull();
+      expect(new Date(approvedReq.reviewed_at).toString()).not.toBe('Invalid Date');
+
+      expect(rejectedReq).toBeDefined();
+      expect(rejectedReq.reviewed_at).not.toBeNull();
+      expect(new Date(rejectedReq.reviewed_at).toString()).not.toBe('Invalid Date');
+    });
+
+    it('7. Pagination with ?page=1&limit=2 returns 2 items and total count', async () => {
+      const res = await request(app)
+        .get('/api/verification-requests/instructor?status=all&page=1&limit=2')
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(2);
+      expect(res.body.data).toHaveLength(2);
+      expect(res.body.page).toBe(1);
+      expect(res.body.total).toBeGreaterThanOrEqual(4);
+      expect(res.body.totalPages).toBeGreaterThanOrEqual(2);
+    });
+
+    it('8. Pagination boundary - page beyond totalPages returns empty data', async () => {
+      const res = await request(app)
+        .get('/api/verification-requests/instructor?status=all&page=99&limit=10')
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual([]);
+      expect(res.body.data).toEqual([]);
+      expect(res.body.page).toBe(99);
+      expect(res.body.totalPages).toBe(1);
+    });
+
+    it('9. Pagination boundary - limit larger than dataset returns all items', async () => {
+      const res = await request(app)
+        .get('/api/verification-requests/instructor?status=all&page=1&limit=100')
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.length).toBeGreaterThanOrEqual(4);
+      expect(res.body.totalPages).toBe(1);
     });
   });
 });

@@ -344,4 +344,77 @@ describe('Instructor View Enrolled Students API Tests (TON-129, UC-34)', () => {
     expect(bob.badgeCount).toBe(0);
     expect(bob.pendingCount).toBe(0);
   });
+
+  describe('TON-164: Pagination for Enrolled Students List View', () => {
+    beforeEach(async () => {
+      // Enroll 3 students to course1
+      await Enrollment.create({
+        student_id: student1._id,
+        course_id: course1._id,
+        status: 'active',
+      });
+      await Enrollment.create({
+        student_id: student2._id,
+        course_id: course1._id,
+        status: 'active',
+      });
+      await Enrollment.create({
+        student_id: student3._id,
+        course_id: course1._id,
+        status: 'active',
+      });
+    });
+
+    it('returns paginated enrolled students with page=1&limit=2', async () => {
+      const res = await request(app)
+        .get(`/api/courses/${course1._id}/enrolled-students?page=1&limit=2`)
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.students).toHaveLength(2);
+      expect(res.body.data).toHaveLength(2);
+      expect(res.body.total).toBe(3);
+      expect(res.body.page).toBe(1);
+      expect(res.body.totalPages).toBe(2);
+      expect(res.body.limit).toBe(2);
+    });
+
+    it('returns second page when page=2&limit=2', async () => {
+      const res = await request(app)
+        .get(`/api/courses/${course1._id}/enrolled-students?page=2&limit=2`)
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.students).toHaveLength(1);
+      expect(res.body.total).toBe(3);
+      expect(res.body.page).toBe(2);
+      expect(res.body.totalPages).toBe(2);
+    });
+
+    it('handles boundary case: page beyond totalPages returns empty array', async () => {
+      const res = await request(app)
+        .get(`/api/courses/${course1._id}/enrolled-students?page=99&limit=20`)
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.students).toEqual([]);
+      expect(res.body.data).toEqual([]);
+      expect(res.body.total).toBe(3);
+      expect(res.body.page).toBe(99);
+      expect(res.body.totalPages).toBe(1);
+    });
+
+    it('handles boundary case: limit larger than total dataset returns all records', async () => {
+      const res = await request(app)
+        .get(`/api/courses/${course1._id}/enrolled-students?page=1&limit=50`)
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.students).toHaveLength(3);
+      expect(res.body.total).toBe(3);
+      expect(res.body.page).toBe(1);
+      expect(res.body.totalPages).toBe(1);
+      expect(res.body.limit).toBe(50);
+    });
+  });
 });

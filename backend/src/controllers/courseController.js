@@ -6,6 +6,7 @@ const {
   StudentPassport,
   Enrollment,
 } = require('../models');
+const { getStudentSkillStatuses } = require('../services/studentSkillService');
 
 /**
  * @desc    Get all courses with optional search and skill counts
@@ -96,16 +97,32 @@ const getCourseSkills = async (req, res, next) => {
       'skill_id'
     );
 
+    let statusMap = null;
+    if (req.user && req.user.role === 'student') {
+      const skillIds = courseSkills
+        .filter((cs) => cs.skill_id)
+        .map((cs) => cs.skill_id._id);
+      statusMap = await getStudentSkillStatuses(req.user._id, skillIds);
+    }
+
     const skills = courseSkills
       .filter((cs) => cs.skill_id)
-      .map((cs) => ({
-        _id: cs.skill_id._id,
-        courseSkillId: cs._id,
-        course_skill_id: cs._id,
-        name: cs.skill_id.name,
-        description: cs.skill_id.description,
-        criteria: cs.skill_id.criteria,
-      }));
+      .map((cs) => {
+        const item = {
+          _id: cs.skill_id._id,
+          courseSkillId: cs._id,
+          course_skill_id: cs._id,
+          name: cs.skill_id.name,
+          description: cs.skill_id.description,
+          criteria: cs.skill_id.criteria,
+          is_open_for_verification: Boolean(cs.skill_id.is_open_for_verification),
+        };
+        if (statusMap) {
+          item.studentStatus =
+            statusMap.get(cs.skill_id._id.toString()) || 'not_started';
+        }
+        return item;
+      });
 
     res.status(200).json({
       course: {

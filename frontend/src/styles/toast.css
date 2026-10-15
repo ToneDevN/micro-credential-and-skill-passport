@@ -1,0 +1,57 @@
+/* ==========================================================================
+   HeroUI Toast Region Positioning & Layering
+   ========================================================================== */
+
+.toast-region,
+div[role='region'][aria-label*='toast' i],
+div[role='region'][aria-label*='notification' i] {
+  position: fixed !important;
+  z-index: 999999 !important;
+  pointer-events: none !important;
+}
+
+/* Placements */
+.toast-region--bottom-end,
+.toast-region[data-placement='bottom end'],
+.toast-region[data-placement='bottom-right'] {
+  bottom: 1rem !important;
+  right: 1rem !important;
+  left: auto !important;
+  top: auto !important;
+}
+
+.toast-region--bottom,
+.toast-region[data-placement='bottom'],
+.toast-region[data-placement='bottom-center'] {
+  bottom: 1rem !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  right: auto !important;
+  top: auto !important;
+}
+
+.toast-region--top-end,
+.toast-region[data-placement='top end'],
+.toast-region[data-placement='top-right'] {
+  top: 1rem !important;
+  right: 1rem !important;
+  left: auto !important;
+  bottom: auto !important;
+}
+
+.toast-region--top,
+.toast-region[data-placement='top'],
+.toast-region[data-placement='top-center'] {
+  top: 1rem !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
+/* Ensure toast cards inside the container receive user clicks */
+.toast-region > *,
+div[role='region'][aria-label*='toast' i] > * {
+  pointer-events: auto !important;
+}
+

@@ -69,6 +69,7 @@ describe('Flow 7: Permission Boundary Test [TON-100]', () => {
         name: 'OWASP Top 10',
         description: 'Security vulnerabilities',
         criteria: 'Identify and fix top 10 vulnerabilities',
+        is_open_for_verification: true,
       });
 
     const pSkills = await request(app).get(

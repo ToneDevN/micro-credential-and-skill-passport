@@ -1,1 +1,0 @@
-../__tests__/githubReposController.test.js

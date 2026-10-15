@@ -168,6 +168,46 @@ describe('Skill Controller Tests (TON-72)', () => {
       expect(res.body.message).toBe('Search query is required');
     });
   });
+
+  describe('GET /api/skills (TON-160: Pagination)', () => {
+    it('returns paginated skills with standard contract { data, total, page, totalPages }', async () => {
+      const res = await request(app).get('/api/skills?page=1&limit=2');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(2);
+      expect(res.body.total).toBe(4);
+      expect(res.body.page).toBe(1);
+      expect(res.body.totalPages).toBe(2);
+    });
+
+    it('returns empty data when page exceeds totalPages (boundary case)', async () => {
+      const res = await request(app).get('/api/skills?page=100&limit=12');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual([]);
+      expect(res.body.total).toBe(4);
+      expect(res.body.page).toBe(100);
+      expect(res.body.totalPages).toBe(1);
+    });
+
+    it('returns all items when limit is larger than dataset (boundary case)', async () => {
+      const res = await request(app).get('/api/skills?page=1&limit=50');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(4);
+      expect(res.body.total).toBe(4);
+      expect(res.body.totalPages).toBe(1);
+    });
+
+    it('filters by query q while paginating', async () => {
+      const res = await request(app).get('/api/skills?q=react&page=1&limit=12');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].name).toBe('React');
+      expect(res.body.total).toBe(1);
+    });
+  });
 });
 
 describe('Micro-Skill Management API Tests (TON-85)', () => {
@@ -572,4 +612,74 @@ describe('Micro-Skill Management API Tests (TON-85)', () => {
       expect(res.body.message).toMatch(/Forbidden|own this course/i);
     });
   });
+
+  describe('Open / Close Micro-Skill Verification API Tests (TON-224)', () => {
+    it('1. Instructor opens skill for verification -> 200, is_open_for_verification true', async () => {
+      const res = await request(app)
+        .patch(`/api/skills/${s1._id}/open`)
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.skill.is_open_for_verification).toBe(true);
+
+      const dbSkill = await MicroSkill.findById(s1._id);
+      expect(dbSkill.is_open_for_verification).toBe(true);
+    });
+
+    it('2. Instructor closes skill for verification -> 200, is_open_for_verification false', async () => {
+      // First open it
+      await request(app)
+        .patch(`/api/skills/${s1._id}/open`)
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      const res = await request(app)
+        .patch(`/api/skills/${s1._id}/close`)
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.skill.is_open_for_verification).toBe(false);
+
+      const dbSkill = await MicroSkill.findById(s1._id);
+      expect(dbSkill.is_open_for_verification).toBe(false);
+    });
+
+    it('3. Non-owner instructor tries to open skill -> 403', async () => {
+      const res = await request(app)
+        .patch(`/api/skills/${s1._id}/open`)
+        .set('Authorization', `Bearer ${instructor2Token}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toMatch(/Forbidden|own the course/i);
+    });
+
+    it('4. Student tries to open skill -> 403', async () => {
+      const res = await request(app)
+        .patch(`/api/skills/${s1._id}/open`)
+        .set('Authorization', `Bearer ${studentToken}`);
+
+      expect(res.status).toBe(403);
+    });
+
+    it('5. Open non-existent skill -> 404', async () => {
+      const fakeId = new mongoose.Types.ObjectId();
+      const res = await request(app)
+        .patch(`/api/skills/${fakeId}/open`)
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toMatch(/Skill not found/i);
+    });
+
+    it('6. Open skill with invalid ID -> 400', async () => {
+      const res = await request(app)
+        .patch('/api/skills/not-an-id/open')
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/Invalid skill ID format/i);
+    });
+  });
 });
+

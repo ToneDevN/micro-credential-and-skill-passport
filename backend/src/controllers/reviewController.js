@@ -7,8 +7,10 @@ const {
   MicroSkill,
   StudentPassport,
   Enrollment,
+  Badge,
 } = require('../models');
 const notificationService = require('../services/notificationService');
+const enrollmentService = require('../services/enrollmentService');
 
 
 /**
@@ -31,9 +33,13 @@ const getInstructorRequests = async (req, res, next) => {
     // If instructor has no courses, return empty immediately
     if (instructorCourseIds.length === 0) {
       return res.status(200).json({
+        data: [],
         requests: [],
         filters: { courses: [] },
+        counts: { all: 0, pending: 0, approved: 0, rejected: 0 },
         total: 0,
+        page: 1,
+        totalPages: 1,
       });
     }
 
@@ -49,6 +55,7 @@ const getInstructorRequests = async (req, res, next) => {
       );
       if (!isOwned) {
         return res.status(200).json({
+          data: [],
           requests: [],
           filters: {
             courses: instructorCourses.map((c) => ({
@@ -56,7 +63,10 @@ const getInstructorRequests = async (req, res, next) => {
               name: c.name,
             })),
           },
+          counts: { all: 0, pending: 0, approved: 0, rejected: 0 },
           total: 0,
+          page: 1,
+          totalPages: 1,
         });
       }
       targetCourseIds = [courseId];
@@ -73,18 +83,49 @@ const getInstructorRequests = async (req, res, next) => {
     });
     const statusIds = studentSkillStatuses.map((s) => s._id);
 
+    // Calculate counts for each status scoped to instructor's courses
+    const counts = {
+      all: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+    };
+
+    if (statusIds.length > 0) {
+      const statusCountsAgg = await VerificationRequest.aggregate([
+        { $match: { student_skill_status_id: { $in: statusIds } } },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]);
+
+      statusCountsAgg.forEach((item) => {
+        if (counts[item._id] !== undefined) {
+          counts[item._id] = item.count;
+        }
+        counts.all += item.count;
+      });
+    }
+
     // 4. Build query for VerificationRequest
     const query = {
       student_skill_status_id: { $in: statusIds },
     };
 
-    if (status && status !== 'all') {
-      query.status = status;
+    const filterStatus = status !== undefined && status !== '' ? status : 'pending';
+    if (filterStatus !== 'all') {
+      query.status = filterStatus;
     }
+
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
+    const skip = (page - 1) * limit;
+
+    const total = await VerificationRequest.countDocuments(query);
+    const totalPages = Math.ceil(total / limit) || 1;
 
     // 5. Query and sort
     const sortDirection = sort === 'date_asc' ? 1 : -1;
     const rawRequests = await VerificationRequest.find(query)
+      .populate('reviewed_by', '_id name email')
       .populate({
         path: 'student_skill_status_id',
         populate: [
@@ -98,7 +139,9 @@ const getInstructorRequests = async (req, res, next) => {
           },
         ],
       })
-      .sort({ submitted_at: sortDirection });
+      .sort({ submitted_at: sortDirection })
+      .skip(skip)
+      .limit(limit);
 
     // 6. Format responses
     const requests = rawRequests
@@ -129,19 +172,29 @@ const getInstructorRequests = async (req, res, next) => {
           status: vr.status,
           feedback: vr.feedback,
           submitted_at: vr.submitted_at,
-          reviewed_at: vr.reviewed_at,
+          reviewed_at: vr.reviewed_at || null,
+          reviewed_by: vr.reviewed_by
+            ? {
+                _id: vr.reviewed_by._id,
+                name: vr.reviewed_by.name || 'Instructor',
+                email: vr.reviewed_by.email || '',
+              }
+            : null,
         };
       });
 
     res.status(200).json({
-      requests,
+      data: requests,
       filters: {
         courses: instructorCourses.map((c) => ({
           _id: c._id,
           name: c.name,
         })),
       },
-      total: requests.length,
+      counts,
+      total,
+      page,
+      totalPages,
     });
   } catch (error) {
     next(error);
@@ -215,16 +268,21 @@ const approveRequest = async (req, res, next) => {
     // 3. Create Badge snapshot data
     const skillName = courseSkill.skill_id?.name || 'Unknown Skill';
     const courseName = course.name || 'Unknown Course';
+    const studentId = studentSkillStatus.student_id;
+    const targetSkillId = courseSkill.skill_id?._id || courseSkill.skill_id;
 
     const badgeData = {
+      student_id: studentId,
+      skill_id: targetSkillId,
       student_skill_status_id: studentSkillStatus._id,
       skill_name: skillName,
       course_name: courseName,
       issued_at: now,
     };
 
-    // 4. Find or auto-create StudentPassport
-    const studentId = studentSkillStatus.student_id;
+    // 4. Find or auto-create StudentPassport and persist Badge
+    await Badge.create(badgeData);
+
     let passport = await StudentPassport.findOne({ student_id: studentId });
     if (!passport) {
       passport = new StudentPassport({
@@ -238,36 +296,7 @@ const approveRequest = async (req, res, next) => {
 
     const createdBadge = passport.badges[passport.badges.length - 1];
 
-    // 5. Auto-complete enrollment if all skills in this course are approved (TON-116, TON-117)
-    try {
-      const activeEnrollment = await Enrollment.findOne({
-        student_id: studentId,
-        course_id: course._id,
-        status: 'active',
-      });
-
-      if (activeEnrollment) {
-        const courseSkills = await CourseSkill.find({ course_id: course._id });
-        const totalSkillsCount = courseSkills.length;
-        const courseSkillIds = courseSkills.map((cs) => cs._id);
-
-        const approvedSkillsCount = await StudentSkillStatus.countDocuments({
-          student_id: studentId,
-          course_skill_id: { $in: courseSkillIds },
-          status: 'approved',
-        });
-
-        if (totalSkillsCount > 0 && approvedSkillsCount >= totalSkillsCount) {
-          activeEnrollment.status = 'completed';
-          activeEnrollment.completed_at = now;
-          await activeEnrollment.save();
-        }
-      }
-    } catch (enrollErr) {
-      console.error('[Auto-complete enrollment error]:', enrollErr.message);
-    }
-
-    // 6. Notify student of approval (TON-115, TON-122)
+    // 5. Notify student of approval (TON-115, TON-122)
     try {
       await notificationService.create(
         studentId,
@@ -277,6 +306,13 @@ const approveRequest = async (req, res, next) => {
       );
     } catch (notifErr) {
       console.warn('[Notification error]:', notifErr.message);
+    }
+
+    // 6. Auto-complete enrollment if all skills in this course are approved (UC-50 / TON-144, TON-159)
+    try {
+      await enrollmentService.checkAndCompleteCourse(studentId, course._id);
+    } catch (enrollErr) {
+      console.error('[Auto-complete enrollment error]:', enrollErr.message);
     }
 
     res.status(200).json({

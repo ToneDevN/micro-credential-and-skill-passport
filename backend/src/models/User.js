@@ -41,6 +41,15 @@ const userSchema = new mongoose.Schema(
       enum: ['connected', 'not_connected'],
       default: 'not_connected',
     },
+    password_reset_token: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    password_reset_expires_at: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -82,6 +91,8 @@ userSchema.methods.toJSON = function () {
   delete obj.password_hash;
   delete obj._plainPassword;
   delete obj.github_access_token;
+  delete obj.password_reset_token;
+  delete obj.password_reset_expires_at;
   return obj;
 };
 

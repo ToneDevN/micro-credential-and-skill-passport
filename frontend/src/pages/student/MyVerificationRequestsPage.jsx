@@ -1,13 +1,25 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Spinner,
+  Table,
+  Button,
+  Chip,
+  Alert,
+  Modal,
+  Input,
+  Pagination,
+  Tooltip
+} from '@heroui/react';
 import api from '../../services/api';
-import './Verification.css';
+import GithubRepoPickerModal from '../../components/GithubRepoPickerModal';
+import { toastSuccess } from '../../utils/toast.js';
+import { handleApiError } from '../../utils/apiErrorToast.js';
 
 const MyVerificationRequestsPage = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
 
   // Active filter tab ('all', 'pending', 'approved', 'rejected', 'expired')
   const [activeFilter, setActiveFilter] = useState('all');
@@ -26,44 +38,58 @@ const MyVerificationRequestsPage = () => {
   const [resubmitEvidenceUrl, setResubmitEvidenceUrl] = useState('');
   const [resubmitLoading, setResubmitLoading] = useState(false);
   const [resubmitError, setResubmitError] = useState(null);
+  const [isRepoPickerOpen, setIsRepoPickerOpen] = useState(false);
 
-  const fetchRequests = useCallback(async () => {
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState({ all: 0, pending: 0, approved: 0, rejected: 0, expired: 0 });
+
+  const fetchRequests = useCallback(async (targetPage = page, status = activeFilter) => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get('/verification-requests/my');
-      setRequests(res.data.requests || []);
+      const params = {
+        page: targetPage,
+        limit: 10,
+      };
+      if (status && status !== 'all') {
+        params.status = status;
+      }
+      const res = await api.get('/verification-requests/my', { params });
+      setRequests(res.data.data || res.data.requests || []);
+      setTotal(res.data.total || 0);
+      setPage(res.data.page || targetPage);
+      setTotalPages(res.data.totalPages || 1);
+      if (res.data.counts) {
+        setCounts((prev) => ({ ...prev, ...res.data.counts }));
+      }
     } catch (err) {
       console.error('Failed to fetch verification requests', err);
       setError('Unable to load verification requests. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, activeFilter]);
 
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    fetchRequests(1, activeFilter);
+  }, []);
 
-  // Compute status counts for tabs
-  const counts = useMemo(() => {
-    const c = { all: requests.length, pending: 0, approved: 0, rejected: 0, expired: 0 };
-    requests.forEach((r) => {
-      const st = r.status?.toLowerCase();
-      if (st && c[st] !== undefined) {
-        c[st] += 1;
-      }
-    });
-    return c;
-  }, [requests]);
+  const handleTabChange = (filter) => {
+    setActiveFilter(filter);
+    setPage(1);
+    fetchRequests(1, filter);
+  };
 
-  // Filter requests based on selected tab
-  const filteredRequests = useMemo(() => {
-    if (activeFilter === 'all') return requests;
-    return requests.filter((r) => r.status?.toLowerCase() === activeFilter);
-  }, [requests, activeFilter]);
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== page) {
+      setPage(newPage);
+      fetchRequests(newPage, activeFilter);
+    }
+  };
 
-  // Format date helper
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     try {
@@ -78,27 +104,57 @@ const MyVerificationRequestsPage = () => {
     }
   };
 
-  // Open Edit Modal
-  const openEditModal = (item) => {
-    setEditModalItem(item);
-    setEditEvidenceUrl(item.evidenceUrl || '');
+  const renderStatusBadge = (status) => {
+    switch (status) {
+      case 'approved':
+        return (
+          <Chip size="sm" color="success" variant="flat" className="text-xs font-semibold">
+            Approved
+          </Chip>
+        );
+      case 'pending':
+        return (
+          <Chip size="sm" color="warning" variant="flat" className="text-xs font-medium">
+            Pending
+          </Chip>
+        );
+      case 'rejected':
+        return (
+          <Chip size="sm" color="danger" variant="flat" className="text-xs font-medium">
+            Rejected
+          </Chip>
+        );
+      case 'expired':
+        return (
+          <Chip size="sm" color="danger" variant="flat" className="text-xs font-medium">
+            Expired
+          </Chip>
+        );
+      default:
+        return (
+          <Chip size="sm" variant="flat" className="text-xs">
+            {status}
+          </Chip>
+        );
+    }
+  };
+
+  // Modal Handlers
+  const openEditModal = (req) => {
+    setEditModalItem(req);
+    setEditEvidenceUrl(req.evidenceUrl || '');
     setEditError(null);
   };
 
-  // Handle Edit Submit
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    if (!editModalItem) return;
-
+  const handleSaveEdit = async () => {
     if (!editEvidenceUrl.trim()) {
-      setEditError('Evidence URL is required.');
+      setEditError('Evidence URL is required');
       return;
     }
-
     try {
       new URL(editEvidenceUrl.trim());
     } catch {
-      setEditError('Please enter a valid URL (starting with http:// or https://)');
+      setEditError('Please enter a valid URL');
       return;
     }
 
@@ -108,497 +164,450 @@ const MyVerificationRequestsPage = () => {
       await api.put(`/verification-requests/${editModalItem._id}`, {
         evidenceUrl: editEvidenceUrl.trim(),
       });
-
-      setSuccessMessage(`Updated evidence URL for ${editModalItem.skillName}`);
+      toastSuccess('Updated evidence URL successfully');
       setEditModalItem(null);
-      await fetchRequests();
+      fetchRequests(page, activeFilter);
     } catch (err) {
-      console.error('Edit request failed', err);
-      setEditError(err.response?.data?.message || 'Failed to update request.');
+      console.error('Failed to update request', err);
+      setEditError(err.response?.data?.message || 'Failed to update request');
+      handleApiError(err);
     } finally {
       setEditLoading(false);
     }
   };
 
-  // Open Cancel Modal
-  const openCancelModal = (item) => {
-    setCancelModalItem(item);
+  const openCancelModal = (req) => {
+    setCancelModalItem(req);
     setCancelError(null);
   };
 
-  // Handle Cancel Submit
-  const handleCancelSubmit = async () => {
-    if (!cancelModalItem) return;
-
+  const handleConfirmCancel = async () => {
     try {
       setCancelLoading(true);
       setCancelError(null);
       await api.delete(`/verification-requests/${cancelModalItem._id}`);
-
-      setSuccessMessage(`Cancelled verification request for ${cancelModalItem.skillName}`);
+      toastSuccess('Cancelled verification request');
       setCancelModalItem(null);
-      await fetchRequests();
+      fetchRequests(page, activeFilter);
     } catch (err) {
-      console.error('Cancel request failed', err);
-      setCancelError(err.response?.data?.message || 'Failed to cancel request.');
+      console.error('Failed to cancel request', err);
+      setCancelError(err.response?.data?.message || 'Failed to cancel request');
+      handleApiError(err);
     } finally {
       setCancelLoading(false);
     }
   };
 
-  // Open Resubmit Modal
-  const openResubmitModal = (item) => {
-    setResubmitModalItem(item);
-    setResubmitEvidenceUrl(item.evidenceUrl || '');
+  const openResubmitModal = (req) => {
+    setResubmitModalItem(req);
+    setResubmitEvidenceUrl(req.evidenceUrl || '');
     setResubmitError(null);
   };
 
-  // Handle Resubmit Submit
-  const handleResubmitSubmit = async (e) => {
-    e.preventDefault();
-    if (!resubmitModalItem) return;
-
+  const handleConfirmResubmit = async () => {
     if (!resubmitEvidenceUrl.trim()) {
-      setResubmitError('Evidence URL is required.');
+      setResubmitError('Evidence URL is required');
       return;
     }
-
     try {
       new URL(resubmitEvidenceUrl.trim());
     } catch {
-      setResubmitError('Please enter a valid URL (starting with http:// or https://)');
+      setResubmitError('Please enter a valid URL');
       return;
     }
 
     try {
       setResubmitLoading(true);
       setResubmitError(null);
-      const targetId = resubmitModalItem.studentSkillStatusId || resubmitModalItem._id;
-      await api.post(`/verification-requests/${targetId}/resubmit`, {
+      await api.post(`/verification-requests/${resubmitModalItem._id}/resubmit`, {
         evidenceUrl: resubmitEvidenceUrl.trim(),
       });
-
-      setSuccessMessage(`Re-submitted verification request for ${resubmitModalItem.skillName}`);
+      toastSuccess('Resubmitted verification request successfully');
       setResubmitModalItem(null);
-      await fetchRequests();
+      fetchRequests(page, activeFilter);
     } catch (err) {
-      console.error('Resubmit failed', err);
-      setResubmitError(err.response?.data?.message || 'Failed to resubmit request.');
+      console.error('Failed to resubmit request', err);
+      setResubmitError(err.response?.data?.message || 'Failed to resubmit request');
+      handleApiError(err);
     } finally {
       setResubmitLoading(false);
     }
   };
 
-  // Helper for status badge rendering
-  const renderStatusBadge = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return (
-          <span className="verification-badge pending">
-            <span className="verification-pulse-dot animate-pulse"></span>
-            <span>Pending</span>
-          </span>
-        );
-      case 'approved':
-        return (
-          <span className="verification-badge approved">
-            <span
-              className="material-symbols-outlined text-[15px]"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              check_circle
-            </span>
-            <span>Approved</span>
-          </span>
-        );
-      case 'rejected':
-        return (
-          <span className="verification-badge rejected">
-            <span
-              className="material-symbols-outlined text-[15px]"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              error
-            </span>
-            <span>Rejected</span>
-          </span>
-        );
-      case 'expired':
-        return (
-          <span className="verification-badge expired">
-            <span className="material-symbols-outlined text-[15px]">schedule</span>
-            <span>Expired</span>
-          </span>
-        );
-      default:
-        return (
-          <span className="verification-badge expired">
-            <span>{status || 'Unknown'}</span>
-          </span>
-        );
-    }
-  };
-
   return (
-    <div className="verification-canvas">
-      <div className="verification-container">
-        {/* 1. Page Header Row */}
-        <div className="verification-history-header">
+    <div className="min-h-[calc(100vh-120px)] bg-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-5xl mx-auto flex flex-col gap-6">
+        {/* Header */}
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="verification-title">My Verification Requests</h1>
-            <p className="verification-subtitle">Track your skill verification submissions</p>
+            <h1 className="font-heading font-bold text-2xl sm:text-3xl text-slate-900 m-0">
+              My Verification Requests
+            </h1>
+            <p className="text-sm text-slate-500 m-0 mt-0.5">
+              Track the status of your submitted evidence and instructor approvals
+            </p>
           </div>
-          <Link to="/student/submit-verification" className="verification-btn-new">
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            <span>Submit New Request</span>
-          </Link>
-        </div>
+
+          <Button
+            as={Link}
+            to="/student/submit-verification"
+            color="primary"
+            className="font-medium shadow-sm shrink-0 self-start sm:self-auto"
+            startContent={<span className="material-symbols-outlined text-[18px]">add</span>}
+          >
+            Submit New Request
+          </Button>
+        </header>
 
         {/* Global Feedback Banners */}
-        {error && (
-          <div className="alert alert-danger d-flex align-items-center mb-4" role="alert">
-            <span className="material-symbols-outlined me-2 text-danger">error</span>
-            <div>{error}</div>
-          </div>
-        )}
+        {error && <Alert status="danger">{error}</Alert>}
 
-        {successMessage && (
-          <div className="alert alert-success d-flex align-items-center mb-4 alert-dismissible" role="alert">
-            <span className="material-symbols-outlined me-2 text-success">check_circle</span>
-            <div className="flex-grow-1">{successMessage}</div>
+        {/* Filter Tabs (without separate redundant summary metric cards) */}
+        <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-px">
+          {[
+            { id: 'all', label: 'All', count: counts.all },
+            { id: 'pending', label: 'Pending', count: counts.pending },
+            { id: 'approved', label: 'Approved', count: counts.approved },
+            { id: 'rejected', label: 'Rejected', count: counts.rejected },
+            { id: 'expired', label: 'Expired', count: counts.expired },
+          ].map((tab) => (
             <button
+              key={tab.id}
               type="button"
-              className="btn-close"
-              aria-label="Close"
-              onClick={() => setSuccessMessage(null)}
-            ></button>
-          </div>
-        )}
-
-        {/* 2. Filter Tabs */}
-        <div className="verification-tabs-bar" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeFilter === 'all'}
-            className={`verification-tab-btn ${activeFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('all')}
-          >
-            <span>All</span>
-            <span className="verification-tab-count">{counts.all}</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeFilter === 'pending'}
-            className={`verification-tab-btn ${activeFilter === 'pending' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('pending')}
-          >
-            <span>Pending</span>
-            <span className="verification-tab-count">{counts.pending}</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeFilter === 'approved'}
-            className={`verification-tab-btn ${activeFilter === 'approved' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('approved')}
-          >
-            <span>Approved</span>
-            <span className="verification-tab-count">{counts.approved}</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeFilter === 'rejected'}
-            className={`verification-tab-btn ${activeFilter === 'rejected' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('rejected')}
-          >
-            <span>Rejected</span>
-            <span className="verification-tab-count">{counts.rejected}</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeFilter === 'expired'}
-            className={`verification-tab-btn ${activeFilter === 'expired' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('expired')}
-          >
-            <span>Expired</span>
-            <span className="verification-tab-count">{counts.expired}</span>
-          </button>
+              className={`flex items-center gap-2 px-3.5 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${activeFilter === tab.id
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              onClick={() => handleTabChange(tab.id)}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`text-xs px-1.5 py-0.2 rounded-full font-bold ${activeFilter === tab.id ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-200/70 text-slate-600'
+                  }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
 
-        {/* 3. Cards List */}
+        {/* Content Area */}
         {loading ? (
-          <div className="text-center py-5">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading requests...</span>
-            </div>
-            <p className="text-muted mt-2 text-sm">Loading your verification requests...</p>
+          <div className="text-center py-16 flex flex-col items-center justify-center gap-3">
+            <Spinner size="lg" color="primary" />
+            <p className="text-slate-500 text-sm m-0">Loading your verification requests...</p>
           </div>
-        ) : filteredRequests.length === 0 ? (
-          <div className="verification-card text-center py-5">
-            <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-500 d-inline-flex align-items-center justify-content-center mb-3">
-              <span className="material-symbols-outlined text-[28px]">assignment</span>
+        ) : requests.length === 0 ? (
+          /* Empty State per TON-213: centered icon + "No verification requests yet" + "Explore skills to get started" + CTA linking to /explore */
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-12 text-center shadow-sm max-w-lg mx-auto flex flex-col items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-1">
+              <span className="material-symbols-outlined text-3xl">assignment_late</span>
             </div>
-            <h3 className="font-bold text-lg text-slate-800 mb-1">
-              {activeFilter === 'all'
-                ? 'No verification requests submitted yet'
-                : `No ${activeFilter} requests`}
+            <h3 className="font-heading font-bold text-lg text-slate-900 m-0">
+              No verification requests yet
             </h3>
-            <p className="text-slate-500 text-sm max-w-md mx-auto mb-4">
-              {activeFilter === 'all'
-                ? 'Start by submitting evidence of competency for skills taught in your courses.'
-                : `There are currently no requests with "${activeFilter}" status.`}
+            <p className="text-xs text-slate-500 m-0 max-w-xs leading-relaxed">
+              Explore skills to get started and submit evidence to build your credential passport.
             </p>
-            <Link to="/student/submit-verification" className="verification-btn-new d-inline-flex">
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              <span>Submit Request</span>
-            </Link>
+            <Button
+              as={Link}
+              to="/explore"
+              color="primary"
+              className="mt-2 font-medium"
+            >
+              Explore Skills
+            </Button>
           </div>
         ) : (
-          <div className="verification-cards-list">
-            {filteredRequests.map((req) => (
-              <div
-                key={req._id}
-                className={`verification-item-card ${req.status}`}
-                data-status={req.status}
-              >
-                {/* Top Row: Skill title & Status badge */}
-                <div className="verification-card-top">
-                  <h2 className="verification-card-skill-title">{req.skillName}</h2>
-                  {renderStatusBadge(req.status)}
-                </div>
+          /* HeroUI Table component */
+          <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+            <Table>
+              <Table.ScrollContainer>
+                <Table.Content aria-label="My Verification Requests" className="min-w-[700px]">
+                  <Table.Header>
+                    <Table.Column isRowHeader className="py-3 px-4 font-semibold text-xs text-slate-700">Skill & Assessor</Table.Column>
+                    <Table.Column className="py-3 px-4 font-semibold text-xs text-slate-700">Course</Table.Column>
+                    <Table.Column className="py-3 px-4 font-semibold text-xs text-slate-700">Submitted</Table.Column>
+                    <Table.Column className="py-3 px-4 font-semibold text-xs text-slate-700">Evidence</Table.Column>
+                    <Table.Column className="py-3 px-4 font-semibold text-xs text-slate-700">Status</Table.Column>
+                    <Table.Column className="py-3 px-4 font-semibold text-xs text-slate-700 text-right">Actions</Table.Column>
+                  </Table.Header>
+                  <Table.Body>
+                    {requests.map((req) => {
+                      const assessorName = req.reviewedBy?.name || req.instructor?.name || 'Assigned Instructor';
+                      const skillTitle = req.skillName || req.skill?.name || 'Untitled Skill';
+                      const courseTitle = req.courseName || req.course?.name || 'General';
+                      const isVerified = req.status === 'approved';
+                      const ledgerUrl = req.ledgerUrl || req.transactionUrl;
 
-                {/* Second Row: Course name • Submitted date */}
-                <div className="verification-card-meta">
-                  <span className="course-name">{req.courseName}</span>
-                  <span className="dot-sep">•</span>
-                  <span>Submitted {formatDate(req.submittedAt)}</span>
-                </div>
+                      return (
+                        <Table.Row key={req._id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
+                          {/* Skill + Muted Assessor row per TON-213 */}
+                          <Table.Cell className="py-3 px-4">
+                            <div className="font-semibold text-sm text-slate-900">{skillTitle}</div>
+                            <div className="text-xs text-slate-400 mt-0.5">Assessor: {assessorName}</div>
+                          </Table.Cell>
 
-                {/* Third Row: Evidence URL */}
-                {req.evidenceUrl && (
-                  <div className="verification-card-evidence">
-                    <a
-                      href={req.evidenceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="verification-evidence-link"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">link</span>
-                      <span>{req.evidenceUrl}</span>
-                    </a>
-                  </div>
-                )}
+                          <Table.Cell className="py-3 px-4 text-xs text-slate-600 font-medium">
+                            {courseTitle}
+                          </Table.Cell>
 
-                {/* Expandable Feedback Section (for Approved / Rejected) */}
-                {req.feedback && (
-                  <div className={`verification-feedback-box ${req.status}`}>
-                    <div className="verification-feedback-header">
-                      <div className="d-flex align-items-center gap-1.5 text-slate-800">
-                        <span className="material-symbols-outlined text-[18px] text-primary">school</span>
-                        <span>
-                          Reviewed by {req.reviewedBy ? req.reviewedBy.name : 'Instructor'}
-                        </span>
-                      </div>
-                      {req.reviewedAt && (
-                        <span className="text-muted text-xs">{formatDate(req.reviewedAt)}</span>
-                      )}
-                    </div>
-                    <p className="verification-feedback-text">“{req.feedback}”</p>
-                  </div>
-                )}
+                          <Table.Cell className="py-3 px-4 text-xs text-slate-500 whitespace-nowrap">
+                            {formatDate(req.submittedAt || req.createdAt)}
+                          </Table.Cell>
 
-                {/* Bottom Row Action Buttons */}
-                {req.status === 'pending' && (
-                  <div className="verification-card-actions">
-                    <button
-                      type="button"
-                      className="verification-action-btn"
-                      onClick={() => openEditModal(req)}
-                    >
-                      <span className="material-symbols-outlined text-[16px]">edit</span>
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="verification-action-btn cancel"
-                      onClick={() => openCancelModal(req)}
-                    >
-                      <span className="material-symbols-outlined text-[16px]">close</span>
-                      <span>Cancel</span>
-                    </button>
-                  </div>
-                )}
+                          <Table.Cell className="py-3 px-4 text-xs">
+                            {req.evidenceUrl ? (
+                              <a
+                                href={req.evidenceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-indigo-600 hover:underline max-w-[140px] truncate block"
+                                title={req.evidenceUrl}
+                              >
+                                View Evidence ↗
+                              </a>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </Table.Cell>
 
-                {req.status === 'expired' && (
-                  <div className="verification-card-actions">
-                    <button
-                      type="button"
-                      className="verification-action-btn resubmit"
-                      onClick={() => openResubmitModal(req)}
-                    >
-                      <span className="material-symbols-outlined text-[16px]">refresh</span>
-                      <span>Re-submit</span>
-                    </button>
-                  </div>
-                )}
+                          {/* Status column + ledger link on verified rows */}
+                          <Table.Cell className="py-3 px-4">
+                            <div className="flex flex-col items-start gap-1">
+                              {renderStatusBadge(req.status)}
+                              {isVerified && (
+                                ledgerUrl ? (
+                                  <a
+                                    href={ledgerUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[11px] text-emerald-600 hover:underline inline-flex items-center gap-0.5"
+                                  >
+                                    <span>Verified on ledger ↗</span>
+                                  </a>
+                                ) : (
+                                  <span className="text-[11px] text-emerald-600">Verified on ledger</span>
+                                )
+                              )}
+                            </div>
+                          </Table.Cell>
+
+                          <Table.Cell className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {req.status === 'pending' && (
+                                <>
+                                  <Tooltip delay={0}>
+                                    <Tooltip.Trigger
+                                      aria-label="Edit evidence URL"
+                                      className="p-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
+                                      onClick={() => openEditModal(req)}
+                                    >
+                                      <span className="material-symbols-outlined text-[18px]">edit</span>
+                                    </Tooltip.Trigger>
+                                    <Tooltip.Content className="rounded-lg border border-slate-200 bg-white p-1.5 text-xs text-slate-700 shadow-sm">
+                                      <p className="m-0">Edit Evidence</p>
+                                    </Tooltip.Content>
+                                  </Tooltip>
+
+                                  <Tooltip delay={0}>
+                                    <Tooltip.Trigger
+                                      aria-label="Cancel request"
+                                      className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                      onClick={() => openCancelModal(req)}
+                                    >
+                                      <span className="material-symbols-outlined text-[18px]">close</span>
+                                    </Tooltip.Trigger>
+                                    <Tooltip.Content className="rounded-lg border border-slate-200 bg-white p-1.5 text-xs text-slate-700 shadow-sm">
+                                      <p className="m-0">Cancel Request</p>
+                                    </Tooltip.Content>
+                                  </Tooltip>
+                                </>
+                              )}
+
+                              {req.status === 'rejected' && (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  className="text-xs h-7 px-2.5 text-rose-600 hover:text-rose-700"
+                                  onPress={() => openResubmitModal(req)}
+                                >
+                                  Re-submit
+                                </Button>
+                              )}
+                            </div>
+                          </Table.Cell>
+                        </Table.Row>
+                      );
+                    })}
+                  </Table.Body>
+                </Table.Content>
+              </Table.ScrollContainer>
+            </Table>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="p-4 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-xs text-slate-500">
+                  Showing page {page} of {totalPages} ({total} total)
+                </span>
+                <Pagination>
+                  <Pagination.Content>
+                    <Pagination.Item>
+                      <Pagination.Previous
+                        isDisabled={page <= 1}
+                        onPress={() => handlePageChange(page - 1)}
+                      >
+                        <Pagination.PreviousIcon />
+                        <span>Previous</span>
+                      </Pagination.Previous>
+                    </Pagination.Item>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <Pagination.Item key={p}>
+                        <Pagination.Link
+                          isActive={p === page}
+                          onPress={() => handlePageChange(p)}
+                        >
+                          {p}
+                        </Pagination.Link>
+                      </Pagination.Item>
+                    ))}
+                    <Pagination.Item>
+                      <Pagination.Next
+                        isDisabled={page >= totalPages}
+                        onPress={() => handlePageChange(page + 1)}
+                      >
+                        <span>Next</span>
+                        <Pagination.NextIcon />
+                      </Pagination.Next>
+                    </Pagination.Item>
+                  </Pagination.Content>
+                </Pagination>
               </div>
-            ))}
+            )}
           </div>
         )}
 
-        {/* ================= EDIT MODAL ================= */}
-        {editModalItem && (
-          <div className="verification-modal-backdrop" role="dialog" aria-modal="true">
-            <div className="verification-modal-box">
-              <h3 className="verification-modal-title">Edit Evidence URL</h3>
-              <p className="verification-modal-desc">
-                Update your submitted evidence link for <strong>{editModalItem.skillName}</strong>.
-              </p>
-
-              {editError && (
-                <div className="alert alert-danger py-2 px-3 text-xs mb-3">{editError}</div>
-              )}
-
-              <form onSubmit={handleEditSubmit}>
-                <div className="verification-form-group">
-                  <label className="verification-label" htmlFor="modal-edit-evidence">
-                    Evidence URL
-                  </label>
-                  <div className="verification-input-wrap">
-                    <div className="verification-input-icon">
-                      <span className="material-symbols-outlined text-[18px]">link</span>
-                    </div>
-                    <input
-                      id="modal-edit-evidence"
-                      type="url"
-                      className="verification-input"
-                      value={editEvidenceUrl}
-                      onChange={(e) => setEditEvidenceUrl(e.target.value)}
-                      placeholder="https://..."
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="verification-modal-actions">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-sm px-3"
-                    onClick={() => setEditModalItem(null)}
-                    disabled={editLoading}
-                  >
+        {/* Edit Evidence Modal */}
+        <Modal isOpen={!!editModalItem} onOpenChange={(open) => !open && setEditModalItem(null)}>
+          <Modal.Backdrop>
+            <Modal.Container>
+              <Modal.Dialog className="sm:max-w-md">
+                <Modal.CloseTrigger />
+                <Modal.Header>
+                  <Modal.Heading className="text-base font-bold text-slate-900 m-0">Edit Evidence URL</Modal.Heading>
+                </Modal.Header>
+                <Modal.Body className="p-4 flex flex-col gap-3">
+                  {editError && <Alert status="danger" className="text-xs">{editError}</Alert>}
+                  <p className="text-xs text-slate-500 m-0">
+                    Update the repository or evidence link for {editModalItem?.skillName || 'this skill'}:
+                  </p>
+                  <Input
+                    type="url"
+                    value={editEvidenceUrl}
+                    onChange={(e) => setEditEvidenceUrl(e.target.value)}
+                    placeholder="https://github.com/..."
+                    className="w-full text-xs"
+                    autoFocus
+                  />
+                </Modal.Body>
+                <Modal.Footer className="flex justify-end gap-2 p-3 border-t border-slate-100">
+                  <Button size="sm" variant="secondary" onPress={() => setEditModalItem(null)}>
                     Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary btn-sm px-3"
-                    disabled={editLoading}
-                  >
-                    {editLoading ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+                  </Button>
+                  <Button size="sm" color="primary" isLoading={editLoading} onPress={handleSaveEdit}>
+                    Save Changes
+                  </Button>
+                </Modal.Footer>
+              </Modal.Dialog>
+            </Modal.Container>
+          </Modal.Backdrop>
+        </Modal>
 
-        {/* ================= CANCEL MODAL ================= */}
-        {cancelModalItem && (
-          <div className="verification-modal-backdrop" role="dialog" aria-modal="true">
-            <div className="verification-modal-box">
-              <h3 className="verification-modal-title text-danger">Cancel Verification Request?</h3>
-              <p className="verification-modal-desc">
-                Are you sure you want to cancel the request for{' '}
-                <strong>{cancelModalItem.skillName}</strong>? Your skill status will be reverted to{' '}
-                <em>not started</em>. This action cannot be undone.
-              </p>
+        {/* Cancel Request Modal */}
+        <Modal isOpen={!!cancelModalItem} onOpenChange={(open) => !open && setCancelModalItem(null)}>
+          <Modal.Backdrop>
+            <Modal.Container>
+              <Modal.Dialog className="sm:max-w-md">
+                <Modal.CloseTrigger />
+                <Modal.Header>
+                  <Modal.Heading className="text-base font-bold text-slate-900 m-0">Cancel Verification Request</Modal.Heading>
+                </Modal.Header>
+                <Modal.Body className="p-4 flex flex-col gap-2">
+                  {cancelError && <Alert status="danger" className="text-xs">{cancelError}</Alert>}
+                  <p className="text-xs text-slate-600 m-0 leading-relaxed">
+                    Are you sure you want to cancel the verification request for{' '}
+                    <strong>{cancelModalItem?.skillName}</strong>? This action cannot be undone.
+                  </p>
+                </Modal.Body>
+                <Modal.Footer className="flex justify-end gap-2 p-3 border-t border-slate-100">
+                  <Button size="sm" variant="secondary" onPress={() => setCancelModalItem(null)}>
+                    Keep Request
+                  </Button>
+                  <Button size="sm" color="danger" isLoading={cancelLoading} onPress={handleConfirmCancel}>
+                    Confirm Cancel
+                  </Button>
+                </Modal.Footer>
+              </Modal.Dialog>
+            </Modal.Container>
+          </Modal.Backdrop>
+        </Modal>
 
-              {cancelError && (
-                <div className="alert alert-danger py-2 px-3 text-xs mb-3">{cancelError}</div>
-              )}
-
-              <div className="verification-modal-actions">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary btn-sm px-3"
-                  onClick={() => setCancelModalItem(null)}
-                  disabled={cancelLoading}
-                >
-                  Keep Request
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger btn-sm px-3"
-                  onClick={handleCancelSubmit}
-                  disabled={cancelLoading}
-                >
-                  {cancelLoading ? 'Cancelling...' : 'Yes, Cancel Request'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ================= RESUBMIT MODAL ================= */}
-        {resubmitModalItem && (
-          <div className="verification-modal-backdrop" role="dialog" aria-modal="true">
-            <div className="verification-modal-box">
-              <h3 className="verification-modal-title">Re-submit Verification</h3>
-              <p className="verification-modal-desc">
-                Your competency verification for <strong>{resubmitModalItem.skillName}</strong> has
-                expired. Provide an updated evidence link to be reviewed again.
-              </p>
-
-              {resubmitError && (
-                <div className="alert alert-danger py-2 px-3 text-xs mb-3">{resubmitError}</div>
-              )}
-
-              <form onSubmit={handleResubmitSubmit}>
-                <div className="verification-form-group">
-                  <label className="verification-label" htmlFor="modal-resubmit-evidence">
-                    New Evidence URL
-                  </label>
-                  <div className="verification-input-wrap">
-                    <div className="verification-input-icon">
-                      <span className="material-symbols-outlined text-[18px]">link</span>
-                    </div>
-                    <input
-                      id="modal-resubmit-evidence"
-                      type="url"
-                      className="verification-input"
-                      value={resubmitEvidenceUrl}
-                      onChange={(e) => setResubmitEvidenceUrl(e.target.value)}
-                      placeholder="https://..."
-                      required
-                    />
+        {/* Resubmit Request Modal */}
+        <Modal isOpen={!!resubmitModalItem} onOpenChange={(open) => !open && setResubmitModalItem(null)}>
+          <Modal.Backdrop>
+            <Modal.Container>
+              <Modal.Dialog className="sm:max-w-md">
+                <Modal.CloseTrigger />
+                <Modal.Header>
+                  <Modal.Heading className="text-base font-bold text-slate-900 m-0">Re-submit Verification Request</Modal.Heading>
+                </Modal.Header>
+                <Modal.Body className="p-4 flex flex-col gap-3">
+                  {resubmitError && <Alert status="danger" className="text-xs">{resubmitError}</Alert>}
+                  <p className="text-xs text-slate-500 m-0">
+                    Provide updated evidence for {resubmitModalItem?.skillName}:
+                  </p>
+                  <Input
+                    type="url"
+                    value={resubmitEvidenceUrl}
+                    onChange={(e) => setResubmitEvidenceUrl(e.target.value)}
+                    placeholder="https://github.com/..."
+                    className="w-full text-xs"
+                    autoFocus
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="text-xs"
+                      onPress={() => setIsRepoPickerOpen(true)}
+                    >
+                      Pick from GitHub
+                    </Button>
                   </div>
-                </div>
-
-                <div className="verification-modal-actions">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-sm px-3"
-                    onClick={() => setResubmitModalItem(null)}
-                    disabled={resubmitLoading}
-                  >
+                </Modal.Body>
+                <Modal.Footer className="flex justify-end gap-2 p-3 border-t border-slate-100">
+                  <Button size="sm" variant="secondary" onPress={() => setResubmitModalItem(null)}>
                     Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary btn-sm px-3"
-                    disabled={resubmitLoading}
-                  >
-                    {resubmitLoading ? 'Submitting...' : 'Re-submit'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+                  </Button>
+                  <Button size="sm" color="primary" isLoading={resubmitLoading} onPress={handleConfirmResubmit}>
+                    Re-submit
+                  </Button>
+                </Modal.Footer>
+              </Modal.Dialog>
+            </Modal.Container>
+          </Modal.Backdrop>
+        </Modal>
+
+        {/* GitHub Repo Picker for Resubmit */}
+        <GithubRepoPickerModal
+          isOpen={isRepoPickerOpen}
+          onClose={() => setIsRepoPickerOpen(false)}
+          onSelect={(repo) => {
+            setResubmitEvidenceUrl(repo.html_url);
+            setIsRepoPickerOpen(false);
+          }}
+        />
       </div>
     </div>
   );

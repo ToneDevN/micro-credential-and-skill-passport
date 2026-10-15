@@ -1,9 +1,12 @@
 const mongoose = require('mongoose');
 const {
+  MicroSkill,
   CourseSkill,
   Enrollment,
   StudentSkillStatus,
   VerificationRequest,
+  Badge,
+  StudentPassport,
 } = require('../models');
 
 /**
@@ -14,20 +17,92 @@ const {
 const submitRequest = async (req, res, next) => {
   try {
     const courseSkillId = req.body.courseSkillId || req.body.course_skill_id;
+    const skillId = req.body.skill_id || req.body.skillId;
     const evidenceUrl = req.body.evidenceUrl || req.body.evidence_url;
+    const student_id = req.user._id || req.user.id;
 
-    if (!mongoose.Types.ObjectId.isValid(courseSkillId)) {
+    // --- Block if skill already certified (UC-06 Business Rule / TON-167) ---
+    let targetSkillId = skillId;
+    let courseSkill = null;
+
+    if (courseSkillId && mongoose.Types.ObjectId.isValid(courseSkillId)) {
+      courseSkill = await CourseSkill.findById(courseSkillId);
+      if (courseSkill && !targetSkillId) {
+        targetSkillId = courseSkill.skill_id?._id || courseSkill.skill_id;
+      }
+    } else if (targetSkillId && mongoose.Types.ObjectId.isValid(targetSkillId)) {
+      courseSkill = await CourseSkill.findOne({ skill_id: targetSkillId });
+    }
+
+    if (targetSkillId) {
+      // 1. Direct Badge model check (authoritative certified record)
+      const existingBadge = await Badge.findOne({
+        student_id,
+        skill_id: targetSkillId,
+      });
+
+      if (existingBadge) {
+        return res.status(409).json({
+          message: 'ทักษะนี้ได้รับการรับรองแล้ว ไม่สามารถยื่นคำขอซ้ำได้',
+          code: 'SKILL_ALREADY_CERTIFIED',
+        });
+      }
+
+      // 2. StudentPassport embedded badges check
+      const passportWithBadge = await StudentPassport.findOne({
+        student_id,
+        'badges.skill_id': targetSkillId,
+      });
+
+      if (passportWithBadge) {
+        return res.status(409).json({
+          message: 'ทักษะนี้ได้รับการรับรองแล้ว ไม่สามารถยื่นคำขอซ้ำได้',
+          code: 'SKILL_ALREADY_CERTIFIED',
+        });
+      }
+
+      // 3. Passport badges check by student_skill_status_id if courseSkill is known
+      if (courseSkill) {
+        const statusIds = await StudentSkillStatus.find({
+          student_id,
+          course_skill_id: courseSkill._id,
+        }).distinct('_id');
+
+        if (statusIds.length > 0) {
+          const passportStatusBadge = await StudentPassport.findOne({
+            student_id,
+            'badges.student_skill_status_id': { $in: statusIds },
+          });
+
+          if (passportStatusBadge) {
+            return res.status(409).json({
+              message: 'ทักษะนี้ได้รับการรับรองแล้ว ไม่สามารถยื่นคำขอซ้ำได้',
+              code: 'SKILL_ALREADY_CERTIFIED',
+            });
+          }
+        }
+      }
+    }
+    // --- END NEW DUPLICATE CERTIFICATION GUARD ---
+
+    if (!courseSkill) {
+      if (courseSkillId && !mongoose.Types.ObjectId.isValid(courseSkillId)) {
+        return res.status(404).json({ message: 'Course skill not found' });
+      }
       return res.status(404).json({ message: 'Course skill not found' });
     }
 
-    const courseSkill = await CourseSkill.findById(courseSkillId);
-    if (!courseSkill) {
-      return res.status(404).json({ message: 'Course skill not found' });
+    // Verify skill is open for verification (TON-224)
+    const skillDoc = await MicroSkill.findById(targetSkillId || courseSkill.skill_id);
+    if (!skillDoc || skillDoc.is_open_for_verification !== true) {
+      return res.status(403).json({
+        message: 'Skill is not open for verification',
+      });
     }
 
     // Verify student is enrolled in the course
     const enrollment = await Enrollment.findOne({
-      student_id: req.user._id,
+      student_id,
       course_id: courseSkill.course_id,
     });
 
@@ -39,21 +114,32 @@ const submitRequest = async (req, res, next) => {
 
     // Find or create StudentSkillStatus
     let studentSkillStatus = await StudentSkillStatus.findOne({
-      student_id: req.user._id,
+      student_id,
       course_skill_id: courseSkill._id,
     });
 
     if (!studentSkillStatus) {
       studentSkillStatus = await StudentSkillStatus.findOneAndUpdate(
-        { student_id: req.user._id, course_skill_id: courseSkill._id },
+        { student_id, course_skill_id: courseSkill._id },
         { $setOnInsert: { status: 'not_started' } },
         { upsert: true, new: true }
       );
     }
 
-    if (studentSkillStatus.status === 'pending') {
-      return res.status(400).json({
-        message: 'You already have a pending request for this skill',
+    // Check if skill already has a pending request
+    const existingPending = await VerificationRequest.findOne({
+      student_skill_status_id: studentSkillStatus._id,
+      status: 'pending',
+    });
+
+    const isDirectSkillId = Boolean(req.body.skill_id || req.body.skillId);
+    if (studentSkillStatus.status === 'pending' || existingPending) {
+      const statusCode = isDirectSkillId ? 409 : 400;
+      return res.status(statusCode).json({
+        message: isDirectSkillId
+          ? 'คุณมีคำขอที่รออยู่สำหรับ skill นี้แล้ว'
+          : 'You already have a pending request for this skill',
+        code: 'PENDING_REQUEST_EXISTS',
       });
     }
 
@@ -203,7 +289,7 @@ const resubmitRequest = async (req, res, next) => {
       return res.status(404).json({ message: 'Skill status not found' });
     }
 
-    // Check if id is an existing VerificationRequest (e.g. Flow 3 rejected resubmission)
+    // Check if id is an existing VerificationRequest (e.g. Flow 3 rejected resubmission, UC-46, TON-154)
     const vr = await VerificationRequest.findById(id).populate('student_skill_status_id');
     if (vr) {
       const studentSkillStatus = vr.student_skill_status_id;
@@ -223,18 +309,33 @@ const resubmitRequest = async (req, res, next) => {
         });
       }
 
-      vr.status = 'pending';
-      vr.evidence_url = evidenceUrl;
-      vr.feedback = null;
-      vr.submitted_at = new Date();
-      await vr.save();
+      // Check if a pending request already exists for this skill/student
+      const existingPending = await VerificationRequest.findOne({
+        student_skill_status_id: studentSkillStatus._id,
+        status: 'pending',
+      });
+      if (existingPending || studentSkillStatus.status === 'pending') {
+        return res.status(400).json({
+          success: false,
+          message: 'คุณมีคำขอที่รออยู่สำหรับ skill นี้แล้ว',
+        });
+      }
 
+      // Create a brand new VerificationRequest document (UC-46: leave old rejected request untouched)
+      const newRequest = await VerificationRequest.create({
+        student_skill_status_id: studentSkillStatus._id,
+        evidence_url: evidenceUrl,
+        status: 'pending',
+        submitted_at: new Date(),
+      });
+
+      // Update studentSkillStatus to pending
       studentSkillStatus.status = 'pending';
       await studentSkillStatus.save();
 
-      return res.status(200).json({
+      return res.status(201).json({
         success: true,
-        request: vr,
+        request: newRequest,
       });
     }
 
@@ -285,6 +386,9 @@ const resubmitRequest = async (req, res, next) => {
 const getMyRequests = async (req, res, next) => {
   try {
     const { status } = req.query;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
+    const skip = (page - 1) * limit;
 
     const myStatuses = await StudentSkillStatus.find({
       student_id: req.user._id,
@@ -300,6 +404,31 @@ const getMyRequests = async (req, res, next) => {
       filter.status = status.trim().toLowerCase();
     }
 
+    const total = await VerificationRequest.countDocuments(filter);
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    // Calculate status counts for tab badges
+    const counts = {
+      all: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+    };
+
+    if (statusIds.length > 0) {
+      const statusCountsAgg = await VerificationRequest.aggregate([
+        { $match: { student_skill_status_id: { $in: statusIds } } },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]);
+
+      statusCountsAgg.forEach((item) => {
+        if (counts[item._id] !== undefined) {
+          counts[item._id] = item.count;
+        }
+        counts.all += item.count;
+      });
+    }
+
     const rawRequests = await VerificationRequest.find(filter)
       .populate({
         path: 'student_skill_status_id',
@@ -312,7 +441,9 @@ const getMyRequests = async (req, res, next) => {
         },
       })
       .populate('reviewed_by', 'name email')
-      .sort({ submitted_at: -1 });
+      .sort({ submitted_at: -1 })
+      .skip(skip)
+      .limit(limit);
 
     const requests = rawRequests.map((r) => {
       const sss = r.student_skill_status_id;
@@ -340,7 +471,13 @@ const getMyRequests = async (req, res, next) => {
       };
     });
 
-    res.status(200).json({ requests });
+    res.status(200).json({
+      data: requests,
+      counts,
+      total,
+      page,
+      totalPages,
+    });
   } catch (error) {
     next(error);
   }

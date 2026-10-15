@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Spinner } from '@heroui/react';
 import api from '../services/api';
 
 const RepositoryInfoPanel = ({ requestId, evidenceUrl }) => {
@@ -46,12 +47,8 @@ const RepositoryInfoPanel = ({ requestId, evidenceUrl }) => {
 
   if (loading) {
     return (
-      <div className="repo-info-loading d-inline-flex align-items-center gap-1 mt-1 text-muted" style={{ fontSize: '0.75rem' }}>
-        <span
-          className="spinner-border spinner-border-sm"
-          role="status"
-          style={{ width: '0.7rem', height: '0.7rem' }}
-        ></span>
+      <div className="repo-info-loading inline-flex items-center gap-1.5 mt-1 text-slate-500 text-xs">
+        <Spinner size="sm" color="current" className="w-3.5 h-3.5" />
         <span>Checking repository...</span>
       </div>
     );
@@ -113,14 +110,14 @@ const RepositoryInfoPanel = ({ requestId, evidenceUrl }) => {
             </span>
             {repoInfo.stars > 0 && (
               <span className="repo-info-badge">
-                <span className="material-symbols-outlined text-warning" style={{ fontSize: 13 }}>
+                <span className="material-symbols-outlined text-amber-500" style={{ fontSize: 13 }}>
                   star
                 </span>
                 {repoInfo.stars}
               </span>
             )}
             {relativeTime && (
-              <span className="repo-info-badge text-muted">
+              <span className="repo-info-badge text-slate-500">
                 <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
                   schedule
                 </span>

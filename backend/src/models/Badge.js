@@ -2,27 +2,39 @@ const mongoose = require('mongoose');
 
 const badgeSchema = new mongoose.Schema(
   {
+    student_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+      default: null,
+    },
+    skill_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'MicroSkill',
+      index: true,
+      default: null,
+    },
     student_skill_status_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'StudentSkillStatus',
-      required: [true, 'StudentSkillStatus ID is required'],
+      default: null,
     },
     skill_name: {
       type: String,
-      required: [true, 'Skill name snapshot is required'],
       trim: true,
+      default: '',
     },
     course_name: {
       type: String,
-      required: [true, 'Course name snapshot is required'],
       trim: true,
+      default: '',
     },
     issued_at: {
       type: Date,
       default: Date.now,
     },
   },
-  { _id: true }
+  { _id: true, strict: false }
 );
 
 const Badge = mongoose.model('Badge', badgeSchema);

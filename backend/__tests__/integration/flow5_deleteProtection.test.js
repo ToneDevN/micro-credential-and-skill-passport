@@ -51,6 +51,7 @@ describe('Flow 5: Business Rule: Delete Protection [TON-98]', () => {
         name: 'Express.js Protected',
         description: 'Building secure RESTful APIs',
         criteria: 'Pass all integration tests',
+        is_open_for_verification: true,
       });
     skill_id_1 = s1Res.body.skill._id;
 

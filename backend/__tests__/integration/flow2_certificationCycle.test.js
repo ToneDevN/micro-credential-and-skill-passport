@@ -55,6 +55,7 @@ describe('Flow 2: Full Certification Cycle (Happy Path) [TON-95]', () => {
         name: 'Express.js',
         description: 'Building RESTful APIs with Node.js and Express',
         criteria: 'Implement secure REST endpoints and authentication middleware',
+        is_open_for_verification: true,
       });
     skill_id_1 = s1Res.body.skill._id;
 
@@ -65,6 +66,7 @@ describe('Flow 2: Full Certification Cycle (Happy Path) [TON-95]', () => {
         name: 'MongoDB',
         description: 'NoSQL Database Schema Design & Mongoose',
         criteria: 'Design schemas, indexes, and complex aggregation pipelines',
+        is_open_for_verification: true,
       });
     skill_id_2 = s2Res.body.skill._id;
   });
@@ -149,8 +151,8 @@ describe('Flow 2: Full Certification Cycle (Happy Path) [TON-95]', () => {
       .set('Authorization', `Bearer ${token_student}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.requests).toBeInstanceOf(Array);
-    const reqItem = res.body.requests.find((r) => r._id === request_id_1);
+    expect(res.body.data).toBeInstanceOf(Array);
+    const reqItem = res.body.data.find((r) => r._id === request_id_1);
     expect(reqItem).toBeDefined();
     expect(reqItem.status).toBe('pending');
   });
@@ -161,8 +163,8 @@ describe('Flow 2: Full Certification Cycle (Happy Path) [TON-95]', () => {
       .set('Authorization', `Bearer ${token_instructor}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.requests).toBeInstanceOf(Array);
-    const found = res.body.requests.find((r) => r._id === request_id_1);
+    expect(res.body.data).toBeInstanceOf(Array);
+    const found = res.body.data.find((r) => r._id === request_id_1);
     expect(found).toBeDefined();
     expect(found.student.name).toBe('Alice Student');
   });

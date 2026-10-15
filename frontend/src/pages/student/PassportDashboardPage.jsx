@@ -1,17 +1,29 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Spinner,
+  Card,
+  CardContent,
+  Button,
+  Chip,
+  Alert,
+  Tabs,
+  Tooltip
+} from '@heroui/react';
 import api from '../../services/api';
 import MyCoursesSection from '../../components/MyCoursesSection';
-import './Passport.css';
+import SharePassportModal from '../../components/SharePassportModal';
 
 const PassportDashboardPage = () => {
+  const navigate = useNavigate();
   const [passport, setPassport] = useState(null);
   const [skillMap, setSkillMap] = useState(null);
-  const [activeTab, setActiveTab] = useState('badges'); // 'badges' | 'skillmap'
+  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  // Fetch both passport and skill map in parallel
+  // Fetch passport, skill map, and recent activities in parallel
   useEffect(() => {
     let isMounted = true;
 
@@ -20,29 +32,37 @@ const PassportDashboardPage = () => {
         setLoading(true);
         setError(null);
 
-        const [passportRes, skillMapRes] = await Promise.all([
+        const [passportRes, skillMapRes, activityRes] = await Promise.allSettled([
           api.get('/passport/my'),
           api.get('/passport/my/skill-map'),
+          api.get('/verification-requests/my?limit=3'),
         ]);
 
         if (isMounted) {
-          setPassport(passportRes.data.passport || { badges: [], totalBadges: 0 });
-          setSkillMap(
-            skillMapRes.data || {
-              courses: [],
-              summary: {
-                totalSkills: 0,
-                earnedSkills: 0,
-                pendingSkills: 0,
-                overallCompletionRate: 0,
-              },
-            }
-          );
+          if (passportRes.status === 'fulfilled') {
+            setPassport(passportRes.value.data.passport || { badges: [], totalBadges: 0 });
+          }
+          if (skillMapRes.status === 'fulfilled') {
+            setSkillMap(
+              skillMapRes.value.data || {
+                courses: [],
+                summary: {
+                  totalSkills: 0,
+                  earnedSkills: 0,
+                  pendingSkills: 0,
+                  overallCompletionRate: 0,
+                },
+              }
+            );
+          }
+          if (activityRes.status === 'fulfilled') {
+            setRecentActivity((activityRes.value.data.requests || []).slice(0, 3));
+          }
         }
       } catch (err) {
-        console.error('Failed to load skill passport data', err);
+        console.error('Failed to load student dashboard data', err);
         if (isMounted) {
-          setError('Failed to load your Skill Passport. Please try again later.');
+          setError('Failed to load dashboard data. Please try again later.');
         }
       } finally {
         if (isMounted) {
@@ -58,7 +78,6 @@ const PassportDashboardPage = () => {
     };
   }, []);
 
-  // Format date helper
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     try {
@@ -89,312 +108,290 @@ const PassportDashboardPage = () => {
     return groups;
   }, [passport]);
 
-  // Derived summary statistics
   const totalBadges = passport?.totalBadges ?? passport?.badges?.length ?? 0;
   const pendingSkills = skillMap?.summary?.pendingSkills ?? 0;
   const completionRate = skillMap?.summary?.overallCompletionRate ?? 0;
 
-  // Select dynamic badge icon based on index/skill name
-  const getBadgeIcon = (skillName, index) => {
-    const icons = ['emoji_events', 'military_tech', 'stars', 'database', 'analytics', 'workspace_premium'];
-    if (/api|express|backend/i.test(skillName)) return 'emoji_events';
-    if (/react|ui|frontend/i.test(skillName)) return 'military_tech';
-    if (/sql|data|mongo/i.test(skillName)) return 'database';
-    if (/auth|security/i.test(skillName)) return 'stars';
-    return icons[index % icons.length];
-  };
-
-  // Render status badge for skill map
-  const renderSkillStatusPill = (status) => {
+  const renderStatusChip = (status) => {
     switch (status) {
-      case 'earned':
-        return (
-          <span className="passport-status-pill earned">
-            <span
-              className="material-symbols-outlined text-[12px]"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              check
-            </span>
-            <span>Earned</span>
-          </span>
-        );
+      case 'approved':
+      case 'certified':
+        return <Chip size="sm" color="success" variant="flat">Approved</Chip>;
       case 'pending':
-        return (
-          <span className="passport-status-pill pending">
-            <span className="material-symbols-outlined text-[12px]">schedule</span>
-            <span>Pending</span>
-          </span>
-        );
-      case 'expired':
-        return (
-          <span className="passport-status-pill expired">
-            <span className="material-symbols-outlined text-[12px]">schedule</span>
-            <span>Expired</span>
-          </span>
-        );
+        return <Chip size="sm" color="warning" variant="flat">Pending</Chip>;
       case 'rejected':
-        return (
-          <span className="passport-status-pill rejected">
-            <span
-              className="material-symbols-outlined text-[12px]"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              error
-            </span>
-            <span>Rejected</span>
-          </span>
-        );
-      case 'not_started':
+        return <Chip size="sm" color="danger" variant="flat">Rejected</Chip>;
       default:
-        return (
-          <span className="passport-status-pill not_started">
-            <span className="material-symbols-outlined text-[12px]">circle</span>
-            <span>Not Started</span>
-          </span>
-        );
+        return <Chip size="sm" variant="flat">{status || 'In Review'}</Chip>;
     }
   };
 
   return (
-    <div className="passport-canvas">
-      <div className="passport-container">
-        {/* 1. Page Header */}
-        <header className="passport-header-row">
+    <div className="min-h-[calc(100vh-120px)] bg-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto flex flex-col gap-6">
+        {/* 1. Header */}
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="passport-title">My Skill Passport</h1>
-            <p className="passport-subtitle">Your digital credential portfolio</p>
+            <h1 className="font-heading font-bold text-2xl sm:text-3xl text-slate-900 m-0">Student Dashboard</h1>
+            <p className="text-sm text-slate-500 m-0 mt-0.5">Track your course progress, badges, and skill verifications</p>
           </div>
 
-          {/* Credential Identity Chip */}
-          <div className="passport-identity-chip">
-            <div className="passport-identity-avatar">AU</div>
-            <span className="passport-identity-name">Apex Tech University</span>
-            <span
-              className="material-symbols-outlined passport-identity-verified"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              verified
-            </span>
+          <div className="flex items-center gap-3">
+            <Tooltip delay={0}>
+              <Tooltip.Trigger
+                aria-label="Share public passport"
+                className="inline-block"
+              >
+                <Button
+                  color="primary"
+                  onPress={() => setIsShareModalOpen(true)}
+                  isDisabled={totalBadges === 0}
+                  className="font-medium shadow-sm"
+                >
+                  <span className="material-symbols-outlined text-[18px] mr-1.5">share</span>
+                  Share Passport
+                </Button>
+              </Tooltip.Trigger>
+              <Tooltip.Content className="rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-700 shadow-sm">
+                <p className="m-0">
+                  {totalBadges === 0
+                    ? 'Earn at least 1 badge to enable sharing'
+                    : 'Generate a public link to share your passport'}
+                </p>
+              </Tooltip.Content>
+            </Tooltip>
           </div>
         </header>
 
-        {error && (
-          <div className="alert alert-danger d-flex align-items-center mb-4" role="alert">
-            <span className="material-symbols-outlined me-2 text-danger">error</span>
-            <div>{error}</div>
-          </div>
-        )}
+        {/* Share Modal */}
+        <SharePassportModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          badgeCount={totalBadges}
+        />
 
-        {/* 2. Summary Stats Cards */}
-        <section aria-label="Passport Statistics" className="passport-stats-grid">
-          {/* Card 1: Badges Earned */}
-          <div className="passport-stat-card">
-            <div className="passport-stat-icon-wrap badges">
-              <span className="material-symbols-outlined text-[28px]">military_tech</span>
+        {error && <Alert status="danger">{error}</Alert>}
+
+        {/* 2. Summary stats as one compact inline row (divider-separated) */}
+        <section
+          aria-label="Summary Statistics"
+          className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100"
+        >
+          {/* Stat 1: Badges Earned */}
+          <div className="flex items-center gap-3.5 py-2 sm:py-0 px-3 sm:px-6">
+            <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-2xl">military_tech</span>
             </div>
             <div>
-              <div className="passport-stat-value">{totalBadges}</div>
-              <div className="passport-stat-label">Badges Earned</div>
-            </div>
-          </div>
-
-          {/* Card 2: Skills In Progress */}
-          <div className="passport-stat-card">
-            <div className="passport-stat-icon-wrap pending">
-              <span className="material-symbols-outlined text-[28px]">hourglass_top</span>
-            </div>
-            <div>
-              <div className="passport-stat-value">{pendingSkills}</div>
-              <div className="passport-stat-label">Skills In Progress</div>
+              <div className="font-heading font-bold text-2xl text-slate-900">{totalBadges}</div>
+              <div className="text-xs text-slate-500 font-medium">Badges Earned</div>
             </div>
           </div>
 
-          {/* Card 3: Completion Rate */}
-          <div className="passport-stat-card">
-            <div className="passport-stat-icon-wrap completion">
-              <span className="material-symbols-outlined text-[28px]">trending_up</span>
+          {/* Stat 2: Skills In Progress */}
+          <div className="flex items-center gap-3.5 py-2 sm:py-0 px-3 sm:px-6">
+            <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-2xl">hourglass_top</span>
             </div>
             <div>
-              <div className="passport-stat-value">{completionRate}%</div>
-              <div className="passport-stat-label">Completion Rate</div>
+              <div className="font-heading font-bold text-2xl text-slate-900">{pendingSkills}</div>
+              <div className="text-xs text-slate-500 font-medium">Skills In Progress</div>
+            </div>
+          </div>
+
+          {/* Stat 3: Completion Rate */}
+          <div className="flex items-center gap-3.5 py-2 sm:py-0 px-3 sm:px-6">
+            <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-2xl">trending_up</span>
+            </div>
+            <div>
+              <div className="font-heading font-bold text-2xl text-slate-900">{completionRate}%</div>
+              <div className="text-xs text-slate-500 font-medium">Completion Rate</div>
             </div>
           </div>
         </section>
 
-        {/* Enrolled Courses Progress Section (TON-118) */}
-        <MyCoursesSection />
-
-        {/* 3. Tab Navigation */}
-        <nav aria-label="Passport Sections" className="passport-tabs-nav" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'badges'}
-            className={`passport-tab-button ${activeTab === 'badges' ? 'active' : ''}`}
-            onClick={() => setActiveTab('badges')}
-          >
-            <span className="material-symbols-outlined text-[18px]">workspace_premium</span>
-            <span>Digital Badges</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'skillmap'}
-            className={`passport-tab-button ${activeTab === 'skillmap' ? 'active' : ''}`}
-            onClick={() => setActiveTab('skillmap')}
-          >
-            <span className="material-symbols-outlined text-[18px]">account_tree</span>
-            <span>Skill Map</span>
-          </button>
-        </nav>
-
         {loading ? (
-          <div className="text-center py-5">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading passport...</span>
-            </div>
-            <p className="text-muted mt-2 small">Loading your credentials and skill map...</p>
+          <div className="text-center py-12 flex flex-col items-center justify-center gap-3">
+            <Spinner size="lg" color="primary" />
+            <p className="text-slate-500 text-sm m-0">Loading dashboard data...</p>
           </div>
-        ) : activeTab === 'badges' ? (
-          /* ================= DIGITAL BADGES TAB ================= */
-          <section aria-label="Digital Badges Catalog" className="passport-badges-catalog">
-            {Object.keys(groupedBadges).length === 0 ? (
-              <div className="passport-empty-box">
-                <div className="passport-empty-icon">
-                  <span className="material-symbols-outlined text-[28px]">military_tech</span>
-                </div>
-                <h3 className="passport-empty-title">No badges earned yet</h3>
-                <p className="passport-empty-desc">
-                  Start by exploring skills and submitting verification requests to earn your digital
-                  credentials.
-                </p>
-                <div className="d-flex flex-column flex-sm-row justify-content-center gap-2">
-                  <Link to="/explore" className="btn btn-outline-primary px-3 py-2" style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                    Explore Skills
-                  </Link>
-                  <Link to="/student/submit-verification" className="btn btn-primary px-3 py-2" style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                    Submit Verification
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              Object.entries(groupedBadges).map(([courseName, badges]) => (
-                <div key={courseName} className="passport-course-group">
-                  {/* Course Group Header */}
-                  <div className="passport-course-group-header">
-                    <div className="d-flex align-items-center gap-2">
-                      <h2 className="passport-course-group-title">{courseName}</h2>
-                      <span className="passport-course-badge-count">
-                        {badges.length} {badges.length === 1 ? 'badge' : 'badges'}
-                      </span>
-                    </div>
-                    <span className="passport-course-curriculum-id">
-                      Verified Curriculum
-                    </span>
-                  </div>
+        ) : (
+          /* 3. HeroUI Tabs for Dashboard Sections */
+          <Tabs defaultSelectedKey="courses" className="w-full" variant="secondary">
+            <Tabs.ListContainer className="border-b border-slate-200">
+              <Tabs.List aria-label="Dashboard views">
+                <Tabs.Tab id="courses">
+                  My Courses
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+                <Tabs.Tab id="activity">
+                  Recent Activity
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+                <Tabs.Tab id="badges">
+                  Digital Badges
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+                <Tabs.Tab id="skillmap">
+                  Skill Map
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+              </Tabs.List>
+            </Tabs.ListContainer>
 
-                  {/* Badges Grid */}
-                  <div className="passport-badges-grid">
-                    {badges.map((b, idx) => (
-                      <article key={b._id || idx} className="passport-badge-card">
-                        {/* Circular Emblem */}
-                        <div className="passport-badge-circle">
-                          <span className="material-symbols-outlined passport-badge-icon">
-                            {getBadgeIcon(b.skill_name, idx)}
-                          </span>
-                          <div className="passport-badge-verified-badge" title="Institutionally Verified">
-                            <span className="material-symbols-outlined text-[13px] font-bold">
-                              check
-                            </span>
+            {/* TAB 1: My Courses */}
+            <Tabs.Panel id="courses" className="pt-6">
+              <MyCoursesSection />
+            </Tabs.Panel>
+
+            {/* TAB 2: Recent Activity (3 items + View All) */}
+            <Tabs.Panel id="activity" className="pt-6">
+              <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-heading font-bold text-base text-slate-900 m-0">Recent Verification Activity</h3>
+                    <p className="text-xs text-slate-500 m-0 mt-0.5">Latest verification submissions and review status</p>
+                  </div>
+                  <Link
+                    to="/student/my-requests"
+                    className="text-xs text-indigo-600 hover:underline font-semibold inline-flex items-center gap-1"
+                  >
+                    <span>View all</span>
+                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                  </Link>
+                </div>
+
+                {recentActivity.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-xs">
+                    No recent verification submissions.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {recentActivity.map((req) => (
+                      <div key={req._id} className="py-3 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-[18px]">assignment_turned_in</span>
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-slate-900">
+                              {req.skill?.name || 'Skill Verification'}
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              Submitted {formatDate(req.createdAt)}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Title & Metadata */}
-                        <h3 className="passport-badge-skill-name">{b.skill_name}</h3>
-                        <p className="passport-badge-course-name">{b.course_name}</p>
-                        <p className="passport-badge-date">Issued {formatDate(b.issued_at)}</p>
-
-                        {/* Verified Ledger Footer */}
-                        <div className="passport-badge-footer">
-                          <span className="material-symbols-outlined text-[14px]">verified_user</span>
-                          <span>
-                            Verified Ledger #{b._id ? b._id.toString().slice(-4).toUpperCase() : 'VALID'}
-                          </span>
+                        <div className="flex items-center gap-3">
+                          {renderStatusChip(req.status)}
+                          <Link
+                            to="/student/my-requests"
+                            className="text-slate-400 hover:text-slate-600"
+                            aria-label="View request details"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                          </Link>
                         </div>
-                      </article>
+                      </div>
                     ))}
                   </div>
-                </div>
-              ))
-            )}
-          </section>
-        ) : (
-          /* ================= SKILL MAP TAB ================= */
-          <section className="passport-skillmap-card">
-            <div className="passport-skillmap-header">
-              <div>
-                <h2 className="passport-skillmap-title">Skill Competency Map</h2>
-                <p className="passport-skillmap-subtitle">
-                  Track progression across registered curriculums
-                </p>
+                )}
               </div>
-              <div className="passport-sync-pill">
-                <span className="passport-sync-dot"></span>
-                <span>Accredited Sync Active</span>
-              </div>
-            </div>
+            </Tabs.Panel>
 
-            {!skillMap?.courses || skillMap.courses.length === 0 ? (
-              <div className="passport-empty-box">
-                <div className="passport-empty-icon">
-                  <span className="material-symbols-outlined text-[28px]">account_tree</span>
-                </div>
-                <h3 className="passport-empty-title">No enrolled courses</h3>
-                <p className="passport-empty-desc">
-                  Enroll in a course to see your skill competency map and tracking progress.
-                </p>
-                <Link to="/explore" className="btn btn-primary px-3 py-2" style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                  Explore Courses
-                </Link>
-              </div>
-            ) : (
-              <div>
-                {skillMap.courses.map((course) => (
-                  <div key={course._id} className="passport-course-map-item">
-                    {/* Top Row: Course name & ratio */}
-                    <div className="passport-course-map-top">
-                      <h3 className="passport-course-map-title">{course.name}</h3>
-                      <span className="passport-course-map-ratio">
-                        {course.earnedSkills}/{course.totalSkills} skills earned (
-                        {course.completionRate}%)
-                      </span>
+            {/* TAB 3: Digital Badges */}
+            <Tabs.Panel id="badges" className="pt-6">
+              <section aria-label="Digital Badges Catalog" className="flex flex-col gap-6">
+                {Object.keys(groupedBadges).length === 0 ? (
+                  <Card className="text-center py-12 px-6 bg-white border border-slate-200/80 rounded-2xl shadow-sm">
+                    <CardContent className="flex flex-col items-center justify-center gap-3 p-0 max-w-sm mx-auto">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                        <span className="material-symbols-outlined text-3xl">military_tech</span>
+                      </div>
+                      <h3 className="font-heading font-bold text-lg text-slate-900 m-0">No badges earned yet</h3>
+                      <p className="text-slate-500 text-xs m-0 leading-relaxed">
+                        Submit verification requests on completed course skills to earn your verifiable credentials.
+                      </p>
+                      <Button
+                        color="primary"
+                        className="mt-2 font-medium"
+                        onPress={() => navigate('/explore')}
+                      >
+                        Explore Skills
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  Object.entries(groupedBadges).map(([courseName, badges]) => (
+                    <div key={courseName} className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-indigo-600 text-[20px]">school</span>
+                        <h2 className="font-heading font-bold text-base text-slate-900 m-0">{courseName}</h2>
+                        <span className="text-xs text-slate-400">({badges.length})</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {badges.map((b) => (
+                          <Card key={b.badge_id || b._id} className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm">
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-2xl">military_tech</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-heading font-bold text-sm text-slate-900 truncate m-0">
+                                  {b.skill_name || 'Verified Skill'}
+                                </h4>
+                                <div className="text-[11px] text-slate-400 mt-0.5">
+                                  Earned {formatDate(b.issued_at)}
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
+                  ))
+                )}
+              </section>
+            </Tabs.Panel>
 
-                    {/* Progress Bar */}
-                    <div className="passport-progressbar-bg">
-                      <div
-                        className="passport-progressbar-fill"
-                        style={{ width: `${course.completionRate}%` }}
-                      ></div>
-                    </div>
-
-                    {/* Skills Grid */}
-                    <div className="passport-skills-status-grid">
-                      {course.skills.map((skill) => (
-                        <div key={skill._id} className="passport-skill-status-cell">
-                          <span className="passport-skill-cell-name" title={skill.name}>
-                            {skill.name}
+            {/* TAB 4: Skill Map */}
+            <Tabs.Panel id="skillmap" className="pt-6">
+              <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6">
+                <h3 className="font-heading font-bold text-base text-slate-900 m-0 mb-4">Course Skill Map</h3>
+                {skillMap?.courses?.length === 0 ? (
+                  <p className="text-slate-400 text-xs">No skill map data available.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {skillMap?.courses?.map((c) => (
+                      <div key={c.course_id} className="p-4 border border-slate-100 rounded-xl bg-slate-50/50">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-heading font-bold text-sm text-slate-900 m-0">{c.course_name}</h4>
+                          <span className="text-xs text-slate-500 font-medium">
+                            {c.earnedSkills} / {c.totalSkills} Earned
                           </span>
-                          {renderSkillStatusPill(skill.status)}
                         </div>
-                      ))}
-                    </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {c.skills?.map((s) => (
+                            <Chip
+                              key={s.skill_id}
+                              size="sm"
+                              color={s.status === 'earned' ? 'success' : s.status === 'pending' ? 'warning' : 'default'}
+                              variant="flat"
+                              className="text-xs"
+                            >
+                              {s.name}
+                            </Chip>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </section>
+            </Tabs.Panel>
+          </Tabs>
         )}
       </div>
     </div>

@@ -5,7 +5,7 @@ const { Notification } = require('../models');
  * Isolated failure: logs and returns null on error without throwing.
  *
  * @param {string|mongoose.Types.ObjectId} userId
- * @param {'badge_approved'|'badge_rejected'} type
+ * @param {'badge_approved'|'badge_rejected'|'course_completed'} type
  * @param {string} message
  * @param {string|mongoose.Types.ObjectId} [relatedId]
  * @returns {Promise<Notification|null>}

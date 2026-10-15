@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { Badge, Button, Card, CardHeader, CardContent, CardFooter, Chip, Spinner } from '@heroui/react';
 import {
   getNotifications,
   getUnreadCount,
   markAsRead,
   markAllAsRead,
 } from '../services/notificationService';
-import './NotificationBell.css';
 
 /**
  * Format relative time string (e.g. "2 hours ago", "Just now")
@@ -40,7 +40,7 @@ const NotificationBell = () => {
     try {
       const data = await getUnreadCount();
       setUnreadCount(typeof data.count === 'number' ? data.count : 0);
-    } catch (err) {
+    } catch {
       // Quiet fail on polling error
     }
   }, []);
@@ -50,7 +50,7 @@ const NotificationBell = () => {
     setLoading(true);
     try {
       const data = await getNotifications({ limit: 10 });
-      setNotifications(data.notifications || []);
+      setNotifications(data.data || []);
     } catch (err) {
       console.error('[NotificationBell] failed to load notifications:', err);
     } finally {
@@ -103,7 +103,6 @@ const NotificationBell = () => {
   };
 
   const handleNotificationClick = async (notif) => {
-    // If unread, mark as read
     if (!notif.is_read) {
       try {
         await markAsRead(notif._id);
@@ -118,8 +117,7 @@ const NotificationBell = () => {
 
     setIsOpen(false);
 
-    // Navigate to related destination
-    if (notif.type === 'badge_approved') {
+    if (notif.type === 'badge_approved' || notif.type === 'course_completed') {
       navigate('/student/passport');
     } else if (notif.type === 'badge_rejected') {
       navigate('/student/my-requests');
@@ -139,114 +137,137 @@ const NotificationBell = () => {
   };
 
   return (
-    <div className="notification-bell-container" ref={containerRef}>
-      <button
-        type="button"
-        className={`notification-bell-btn ${isOpen ? 'active' : ''}`}
-        onClick={toggleDropdown}
-        aria-label="Notifications"
-        aria-expanded={isOpen}
-        title="Notifications"
-      >
-        <span className="material-symbols-outlined">notifications</span>
-        {unreadCount > 0 && (
-          <span className="notification-bell-badge">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
-        )}
-      </button>
+    <div className="relative inline-flex items-center" ref={containerRef}>
+      <Badge.Anchor>
+        <Button
+          isIconOnly
+          variant="tertiary"
+          size="sm"
+          onPress={toggleDropdown}
+          aria-label="Notifications"
+          aria-expanded={isOpen}
+          title="Notifications"
+          className={`w-9 h-9 text-slate-700 hover:text-primary rounded-xl transition-colors ${isOpen ? 'text-primary' : ''
+            }`}
+        >
+          <span className="material-symbols-outlined text-[20px]">notifications</span>
+        </Button>
+        <Badge
+
+          color="danger"
+          shape="circle"
+          isInvisible={unreadCount === 0}
+          size="sm"
+        >
+          {unreadCount > 99 ? '99+' : unreadCount}
+        </Badge>
+      </Badge.Anchor>
+
 
       {isOpen && (
-        <div className="notification-dropdown" role="menu">
-          <div className="notification-dropdown-header">
-            <div className="notification-dropdown-title">
-              <span>Notifications</span>
+        <Card
+          className="absolute top-[calc(100%+8px)] right-0 w-[380px] max-w-[92vw] shadow-2xl border border-slate-200/80 rounded-2xl z-50 overflow-hidden"
+          role="menu"
+        >
+          <CardHeader className="flex items-center justify-between px-4 py-3 border-b border-slate-200/80 bg-surface-tertiary">
+            <div className="flex items-center gap-2">
+              <span className="font-heading font-bold text-sm text-slate-900">Notifications</span>
               {unreadCount > 0 && (
-                <span className="notification-count-tag">{unreadCount} new</span>
+                <Chip size="sm" color="primary" variant="flat" className="h-5 text-[11px] px-1 font-semibold">
+                  {unreadCount} new
+                </Chip>
               )}
             </div>
             {unreadCount > 0 && (
-              <button
-                type="button"
-                className="notification-mark-all-btn"
-                onClick={handleMarkAllRead}
+              <Button
+                variant="light"
+                size="sm"
+                color="primary"
+                onPress={handleMarkAllRead}
+                className="text-xs h-7 px-2 font-medium"
               >
                 Mark all as read
-              </button>
+              </Button>
             )}
-          </div>
+          </CardHeader>
 
-          <div className="notification-dropdown-list">
+          <CardContent className="p-0 max-h-[380px] overflow-y-auto">
             {loading ? (
-              <div className="notification-loading-state">
-                <div className="spinner-border spinner-border-sm text-primary" role="status">
-                  <span className="visually-hidden">Loading...</span>
-                </div>
+              <div className="flex justify-center items-center py-8">
+                <Spinner size="sm" color="primary" />
               </div>
             ) : notifications.length === 0 ? (
-              <div className="notification-empty-state">
-                <span className="material-symbols-outlined notification-empty-icon">
+              <div className="py-10 px-6 text-center flex flex-col items-center justify-center gap-2">
+                <span className="material-symbols-outlined text-4xl text-slate-300">
                   notifications_paused
                 </span>
-                <p className="notification-empty-title">You're all caught up!</p>
-                <p className="notification-empty-desc">
-                  No new notifications at this time.
-                </p>
+                <p className="text-sm font-semibold text-slate-800 m-0">You're all caught up!</p>
+                <p className="text-xs text-slate-500 m-0">No new notifications at this time.</p>
               </div>
             ) : (
-              notifications.map((notif) => {
-                const isApproved = notif.type === 'badge_approved';
-                return (
-                  <div
-                    key={notif._id}
-                    className={`notification-item ${!notif.is_read ? 'unread' : ''}`}
-                    onClick={() => handleNotificationClick(notif)}
-                    role="menuitem"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        handleNotificationClick(notif);
-                      }
-                    }}
-                  >
+              <div className="divide-y divide-slate-100">
+                {notifications.map((notif) => {
+                  const isApproved = notif.type === 'badge_approved';
+                  const isCompleted = notif.type === 'course_completed';
+                  return (
                     <div
-                      className={`notification-item-icon-wrapper ${
-                        isApproved ? 'approved' : 'rejected'
-                      }`}
+                      key={notif._id}
+                      className={`flex items-start gap-3 p-3.5 transition-colors cursor-pointer text-left ${!notif.is_read
+                        ? 'bg-blue-50/50 hover:bg-blue-50 border-l-3 border-l-primary'
+                        : 'bg-white hover:bg-slate-50'
+                        }`}
+                      onClick={() => handleNotificationClick(notif)}
+                      role="menuitem"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          handleNotificationClick(notif);
+                        }
+                      }}
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                        {isApproved ? 'verified' : 'cancel'}
-                      </span>
-                    </div>
-
-                    <div className="notification-item-body">
-                      <p className="notification-item-message">{notif.message}</p>
-                      <div className="notification-item-footer">
-                        <span className="notification-item-time">
-                          {formatRelativeTime(notif.created_at)}
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isCompleted || isApproved
+                          ? 'bg-emerald-100 text-emerald-600'
+                          : 'bg-rose-100 text-rose-600'
+                          }`}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">
+                          {isCompleted ? 'workspace_premium' : isApproved ? 'verified' : 'cancel'}
                         </span>
-                        {!notif.is_read && <span className="notification-unread-dot"></span>}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`text-xs text-slate-900 leading-snug m-0 mb-1 line-clamp-2 ${!notif.is_read ? 'font-semibold' : ''
+                            }`}
+                        >
+                          {notif.message}
+                        </p>
+                        <div className="flex items-center justify-between text-[11px] text-slate-500">
+                          <span>{formatRelativeTime(notif.created_at)}</span>
+                          {!notif.is_read && (
+                            <span className="w-2 h-2 rounded-full bg-primary inline-block"></span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
-          </div>
+          </CardContent>
 
-          <div className="notification-dropdown-footer">
+          <CardFooter className="p-2 border-t border-slate-200/80 bg-surface-tertiary/60 text-center">
             <Link
               to="/notifications"
-              className="notification-view-all-link"
+              className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-primary py-1.5 hover:underline"
               onClick={() => setIsOpen(false)}
             >
               <span>View all notifications</span>
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                arrow_forward
-              </span>
+              <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
             </Link>
-          </div>
-        </div>
+          </CardFooter>
+        </Card>
       )}
     </div>
   );

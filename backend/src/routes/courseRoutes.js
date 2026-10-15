@@ -38,7 +38,12 @@ router.get('/my', protect, restrictTo('instructor'), getMyCourses);
 router.get('/:id', getCourseById);
 
 // GET /api/courses/:courseId/public-skills (Public & student exploration)
-router.get('/:courseId/public-skills', getPublicCourseSkills);
+router.get('/:courseId/public-skills', optionalAuth, getPublicCourseSkills);
+
+// GET /api/courses/:id/students (TON-222: Disabled for v1, returns 503)
+router.all('/:id/students', (req, res) => {
+  res.status(503).json({ message: 'Enrollment feature coming in v2' });
+});
 
 // GET /api/courses/:courseId/enrolled-students (Instructor only, UC-34, TON-128)
 router.get(

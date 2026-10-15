@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Modal,
+  Spinner,
+  Input,
+  Button,
+  Chip
+} from '@heroui/react';
 import { getMyRepos } from '../services/githubService';
 import { formatRelativeTime } from './NotificationBell';
-import './GithubRepoPickerModal.css';
 
 const GithubRepoPickerModal = ({ isOpen, onClose, onSelect }) => {
   const [repos, setRepos] = useState([]);
@@ -43,212 +49,149 @@ const GithubRepoPickerModal = ({ isOpen, onClose, onSelect }) => {
     fetchRepos();
   }, [isOpen]);
 
-  // Handle ESC key
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   const filteredRepos = repos.filter((r) =>
     r.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
   );
 
   return (
-    <div
-      className="repo-modal-backdrop"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="repo-modal-heading"
-    >
-      <div className="repo-modal-card">
-        {/* Header */}
-        <div className="repo-modal-header">
-          <h3 className="repo-modal-title" id="repo-modal-heading">
-            <svg height="22" width="22" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-            </svg>
-            <span>Select GitHub Repository</span>
-          </h3>
-          <button
-            type="button"
-            className="repo-modal-close-btn"
-            onClick={onClose}
-            aria-label="Close modal"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-              close
-            </span>
-          </button>
-        </div>
-
-        {/* Search Filter Bar */}
-        {!loading && !errorType && repos.length > 0 && (
-          <div className="repo-modal-search-wrap">
-            <div className="repo-modal-search-input-box">
-              <span className="material-symbols-outlined repo-modal-search-icon">
-                search
-              </span>
-              <input
-                type="text"
-                className="repo-modal-search-input"
-                placeholder="Search repository name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                autoFocus
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Content Area */}
-        <div className="repo-modal-content">
-          {loading ? (
-            <div className="repo-modal-empty">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading repositories...</span>
+    <Modal isOpen={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Modal.Backdrop>
+        <Modal.Container>
+          <Modal.Dialog className="sm:max-w-xl max-h-[85vh] flex flex-col">
+            <Modal.CloseTrigger />
+            <Modal.Header className="p-5 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+                  <svg height="18" width="18" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                  </svg>
+                </div>
+                <div>
+                  <Modal.Heading className="text-base font-bold text-slate-900 m-0">Select GitHub Repository</Modal.Heading>
+                  <p className="text-xs text-slate-500 m-0">Choose repository evidence for verification</p>
+                </div>
               </div>
-              <p className="mt-2 text-muted">Loading your repositories from GitHub...</p>
-            </div>
-          ) : errorType === 'TOKEN_EXPIRED' ? (
-            <div className="repo-modal-empty">
-              <span className="material-symbols-outlined repo-modal-empty-icon text-warning">
-                lock_clock
-              </span>
-              <h4>GitHub Connection Expired</h4>
-              <p>
-                GitHub token หมดอายุหรือไม่ได้รับอนุญาต กรุณาเชื่อมต่อบัญชีใหม่ที่หน้าการตั้งค่า
-              </p>
-              <button
-                type="button"
-                className="btn btn-sm btn-primary mt-2"
-                onClick={() => {
-                  onClose();
-                  navigate('/settings');
-                }}
-              >
-                Go to Settings
-              </button>
-            </div>
-          ) : errorType ? (
-            <div className="repo-modal-empty">
-              <span className="material-symbols-outlined repo-modal-empty-icon text-danger">
-                cloud_off
-              </span>
-              <h4>ไม่สามารถโหลด repository ได้</h4>
-              <p>
-                {errorType === 'RATE_LIMIT_EXCEEDED'
-                  ? 'GitHub API rate limit exceeded. กรุณาลองใหม่ภายหลัง หรือพิมพ์ Evidence URL ด้วยตนเอง'
-                  : 'เกิดข้อผิดพลาดในการเชื่อมต่อกับ GitHub คุณสามารถปิดหน้าต่างนี้และกรอก Evidence URL ด้วยตนเอง'}
-              </p>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-secondary mt-2"
-                onClick={onClose}
-              >
-                Close & Enter URL Manually
-              </button>
-            </div>
-          ) : repos.length === 0 ? (
-            <div className="repo-modal-empty">
-              <span className="material-symbols-outlined repo-modal-empty-icon">
-                folder_off
-              </span>
-              <h4>ไม่พบ repository</h4>
-              <p>ไม่พบ repository ใน GitHub account ของคุณ</p>
-            </div>
-          ) : filteredRepos.length === 0 ? (
-            <div className="repo-modal-empty">
-              <span className="material-symbols-outlined repo-modal-empty-icon">
-                search_off
-              </span>
-              <h4>No matching repositories</h4>
-              <p>No repository matched &apos;{searchQuery}&apos;</p>
-            </div>
-          ) : (
-            <ul className="repo-list">
-              {filteredRepos.map((repo) => (
-                <li
-                  key={repo.name}
-                  className="repo-item"
-                  onClick={() => onSelect(repo)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      onSelect(repo);
-                    }
-                  }}
-                >
-                  <div className="repo-item-main">
-                    <h5 className="repo-item-name">
-                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                        bookmark
-                      </span>
-                      <span>{repo.name}</span>
-                    </h5>
-                    {repo.description && (
-                      <p className="repo-item-desc">{repo.description}</p>
-                    )}
-                    <div className="repo-item-meta">
-                      {repo.language && (
-                        <span className="repo-lang-badge">
-                          <span
-                            className="material-symbols-outlined"
-                            style={{ fontSize: 12, color: '#6366f1' }}
-                          >
-                            code
-                          </span>
-                          <span>{repo.language}</span>
-                        </span>
-                      )}
-                      <span>Updated {formatRelativeTime(repo.updated_at)}</span>
-                    </div>
-                  </div>
+            </Modal.Header>
 
-                  <button
-                    type="button"
-                    className="repo-select-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelect(repo);
+            {/* Search Filter Bar */}
+            {!loading && !errorType && repos.length > 0 && (
+              <div className="p-3 border-b border-slate-100 bg-slate-50/50 shrink-0">
+                <Input
+                  type="text"
+                  placeholder="Filter repositories..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full text-xs"
+                  autoFocus
+                />
+              </div>
+            )}
+
+            {/* Body */}
+            <Modal.Body className="flex-1 overflow-y-auto p-3 sm:p-4">
+              {loading ? (
+                <div className="py-12 flex flex-col items-center justify-center text-center gap-2">
+                  <Spinner size="lg" color="primary" />
+                  <p className="mt-2 text-slate-500 text-xs m-0">Loading your GitHub repositories...</p>
+                </div>
+              ) : errorType === 'TOKEN_EXPIRED' ? (
+                <div className="py-8 flex flex-col items-center justify-center text-center gap-2 max-w-sm mx-auto">
+                  <span className="material-symbols-outlined text-3xl text-amber-500">lock_clock</span>
+                  <h4 className="font-heading font-bold text-base text-slate-900 m-0">GitHub Token Expired</h4>
+                  <p className="text-xs text-slate-500 m-0 leading-relaxed">
+                    Please reconnect your GitHub account in settings.
+                  </p>
+                  <Button
+                    color="primary"
+                    size="sm"
+                    className="mt-2"
+                    onPress={() => {
+                      onClose();
+                      navigate('/settings');
                     }}
                   >
-                    <span>Select</span>
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                      arrow_forward
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                    Go to Settings
+                  </Button>
+                </div>
+              ) : errorType ? (
+                <div className="py-8 flex flex-col items-center justify-center text-center gap-2 max-w-sm mx-auto">
+                  <span className="material-symbols-outlined text-3xl text-rose-500">cloud_off</span>
+                  <h4 className="font-heading font-bold text-base text-slate-900 m-0">Unable to load repositories</h4>
+                  <p className="text-xs text-slate-500 m-0">
+                    You can close this modal and paste your evidence URL manually.
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="mt-2"
+                    onPress={onClose}
+                  >
+                    Enter URL Manually
+                  </Button>
+                </div>
+              ) : repos.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-500">
+                  No repositories found in your account.
+                </div>
+              ) : filteredRepos.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-500">
+                  No repository matched &apos;{searchQuery}&apos;
+                </div>
+              ) : (
+                /* Compact ListBox rows (repo name + select button only, metadata revealed on hover) */
+                <div className="flex flex-col gap-1.5">
+                  {filteredRepos.map((repo) => (
+                    <div
+                      key={repo.name}
+                      className="group p-2.5 rounded-xl border border-slate-200/80 hover:border-indigo-500/50 hover:bg-indigo-50/20 transition-all flex items-center justify-between gap-3 cursor-pointer"
+                      onClick={() => onSelect(repo)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-indigo-600 transition-colors">
+                            bookmark
+                          </span>
+                          <span className="font-semibold text-sm text-slate-900 group-hover:text-indigo-600 truncate transition-colors">
+                            {repo.name}
+                          </span>
+                        </div>
+                        {/* Revealed on hover/expand */}
+                        <div className="hidden group-hover:flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+                          {repo.language && (
+                            <Chip size="sm" variant="flat" color="primary" className="h-4 text-[10px] px-1 font-medium">
+                              {repo.language}
+                            </Chip>
+                          )}
+                          <span>Updated {formatRelativeTime(repo.updated_at)}</span>
+                        </div>
+                      </div>
 
-        {/* Footer */}
-        <div className="repo-modal-footer">
-          <span className="repo-modal-footer-hint">
-            Showing {filteredRepos.length} of {repos.length} repositories
-          </span>
-          <button
-            type="button"
-            className="repo-modal-cancel-btn"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="shrink-0 text-xs h-7 px-3 group-hover:bg-indigo-600 group-hover:text-white transition-colors"
+                        onPress={() => onSelect(repo)}
+                      >
+                        Select
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Modal.Body>
+
+            <Modal.Footer className="flex items-center justify-between p-3 border-t border-slate-100 bg-slate-50/50 shrink-0">
+              <span className="text-xs text-slate-500">
+                {filteredRepos.length} repositories
+              </span>
+              <Button size="sm" variant="secondary" onPress={onClose}>
+                Cancel
+              </Button>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 };
 

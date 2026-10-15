@@ -143,18 +143,18 @@ describe('Notification API & Model Unit Tests (TON-123)', () => {
         .set('Authorization', `Bearer ${studentAToken}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.notifications).toHaveLength(5);
+      expect(res.body.data).toHaveLength(5);
       expect(res.body.total).toBe(5);
       expect(res.body.page).toBe(1);
       expect(res.body.hasMore).toBe(false);
 
       // Verify all belong to student A
-      res.body.notifications.forEach((notif) => {
+      res.body.data.forEach((notif) => {
         expect(notif.user_id.toString()).toBe(studentA._id.toString());
       });
 
       // Verify sorted newest first
-      const messages = res.body.notifications.map((n) => n.message);
+      const messages = res.body.data.map((n) => n.message);
       expect(messages).toEqual([
         'A1 - Badge 1 approved',
         'A2 - Request 1 rejected',
@@ -170,12 +170,12 @@ describe('Notification API & Model Unit Tests (TON-123)', () => {
         .set('Authorization', `Bearer ${studentAToken}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.notifications).toHaveLength(2);
+      expect(res.body.data).toHaveLength(2);
       expect(res.body.page).toBe(2);
       expect(res.body.total).toBe(5);
       expect(res.body.hasMore).toBe(true);
 
-      const messages = res.body.notifications.map((n) => n.message);
+      const messages = res.body.data.map((n) => n.message);
       expect(messages).toEqual(['A3 - Badge 2 approved', 'A4 - Badge 3 approved']);
     });
 
@@ -185,7 +185,7 @@ describe('Notification API & Model Unit Tests (TON-123)', () => {
         .set('Authorization', `Bearer ${studentCToken}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.notifications).toEqual([]);
+      expect(res.body.data).toEqual([]);
       expect(res.body.total).toBe(0);
       expect(res.body.hasMore).toBe(false);
     });
@@ -193,6 +193,32 @@ describe('Notification API & Model Unit Tests (TON-123)', () => {
     test('#4: Unauthenticated request - 401', async () => {
       const res = await request(app).get('/api/notifications');
       expect(res.status).toBe(401);
+    });
+
+    test('#4b: Pagination boundary - page beyond totalPages returns empty data and hasMore false', async () => {
+      const res = await request(app)
+        .get('/api/notifications?page=99&limit=20')
+        .set('Authorization', `Bearer ${studentAToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual([]);
+      expect(res.body.data).toEqual([]);
+      expect(res.body.page).toBe(99);
+      expect(res.body.total).toBe(5);
+      expect(res.body.totalPages).toBe(1);
+      expect(res.body.hasMore).toBe(false);
+    });
+
+    test('#4c: Pagination boundary - limit larger than dataset returns all items', async () => {
+      const res = await request(app)
+        .get('/api/notifications?page=1&limit=100')
+        .set('Authorization', `Bearer ${studentAToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(5);
+      expect(res.body.total).toBe(5);
+      expect(res.body.totalPages).toBe(1);
+      expect(res.body.hasMore).toBe(false);
     });
   });
 

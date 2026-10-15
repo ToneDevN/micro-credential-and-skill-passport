@@ -246,13 +246,25 @@ const getEnrolledStudents = async (req, res, next) => {
       });
     }
 
-    // Find active enrollments only
-    const enrollments = await Enrollment.find({
+    // Query active enrollments count & pagination (TON-164)
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit, 10) || 20);
+    const skip = (page - 1) * limit;
+
+    const query = {
       course_id: courseId,
       status: 'active',
-    })
+    };
+
+    const total = await Enrollment.countDocuments(query);
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    // Find active enrollments with skip & limit
+    const enrollments = await Enrollment.find(query)
       .populate('student_id', '_id name email')
-      .sort({ enrolled_at: -1 });
+      .sort({ enrolled_at: -1 })
+      .skip(skip)
+      .limit(limit);
 
     const courseSkills = await CourseSkill.find({ course_id: courseId });
     const courseSkillIds = courseSkills.map((cs) => cs._id);
@@ -294,7 +306,12 @@ const getEnrolledStudents = async (req, res, next) => {
     const filteredStudents = students.filter(Boolean);
 
     res.status(200).json({
+      data: filteredStudents,
       students: filteredStudents,
+      total,
+      page,
+      totalPages,
+      limit,
     });
   } catch (error) {
     next(error);

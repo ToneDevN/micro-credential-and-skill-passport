@@ -51,6 +51,7 @@ describe('Flow 6: Multi-Student Analytics Verification [TON-99]', () => {
         name: 'AWS S3 Architecture',
         description: 'Object storage',
         criteria: 'Configure bucket policies and encryption',
+        is_open_for_verification: true,
       });
 
     const publicSkills = await request(app).get(

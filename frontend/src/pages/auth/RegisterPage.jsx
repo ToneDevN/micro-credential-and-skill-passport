@@ -1,7 +1,33 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import {
+  Card,
+  Form,
+  TextField,
+  Input,
+  InputGroup,
+  Button,
+  Alert,
+  Meter,
+  Tooltip
+} from '@heroui/react';
 import { useAuth } from '../../context/AuthContext';
-import './Auth.css';
+import { toastSuccess, toastError } from '../../utils/toast.js';
+import { handleApiError } from '../../utils/apiErrorToast.js';
+
+const getPasswordStrength = (pwd) => {
+  if (!pwd) return { score: 0, label: 'Empty', color: 'default' };
+  let score = 0;
+  if (pwd.length >= 6) score += 25;
+  if (pwd.length >= 8) score += 25;
+  if (/[0-9]/.test(pwd)) score += 25;
+  if (/[^A-Za-z0-9]/.test(pwd) || /[A-Z]/.test(pwd)) score += 25;
+
+  if (score <= 25) return { score, label: 'Weak', color: 'danger' };
+  if (score <= 50) return { score, label: 'Fair', color: 'warning' };
+  if (score <= 75) return { score, label: 'Good', color: 'primary' };
+  return { score: 100, label: 'Strong', color: 'success' };
+};
 
 const RegisterPage = () => {
   const [name, setName] = useState('');
@@ -9,6 +35,7 @@ const RegisterPage = () => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('student');
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const [validated, setValidated] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,6 +45,8 @@ const RegisterPage = () => {
 
   const isEmailValid = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
   const isPasswordValid = (val) => val.length >= 6;
+
+  const strength = getPasswordStrength(password);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,16 +60,20 @@ const RegisterPage = () => {
     setLoading(true);
     try {
       const user = await register(name, email, password, role);
+      toastSuccess('ลงทะเบียนสำเร็จ', `ยินดีต้อนรับสู่ระบบ ${user?.name || ''}`);
       if (user.role === 'instructor') {
         navigate('/instructor/courses');
       } else {
         navigate('/student/passport');
       }
     } catch (err) {
-      if (err.response?.status === 409) {
-        setError('This email address is already registered.');
+      if (err.response?.status === 400 || err.response?.status === 409) {
+        const msg = err.response?.data?.message || 'This email address is already registered.';
+        setError(msg);
+        toastError('ลงทะเบียนไม่สำเร็จ', msg);
       } else {
         setError(err.response?.data?.message || 'Registration failed. Please try again.');
+        handleApiError(err);
       }
     } finally {
       setLoading(false);
@@ -48,217 +81,228 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="stitch-auth-wrapper">
-      <div className="stitch-card">
-        {/* LEFT PANEL (~45% width) */}
-        <section className="stitch-left-panel">
-          {/* Ambient Decorative Radial Accents */}
-          <div className="stitch-glow-1"></div>
-          <div className="stitch-glow-2"></div>
-
-          {/* Top Content */}
-          <div style={{ position: 'relative', zIndex: 2 }}>
-            <div className="stitch-badge-pill">
-              <span
-                className="material-symbols-outlined"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                stars
-              </span>
-              <span className="stitch-badge-text">
-                Verified Credential Network
-              </span>
+    <div className="min-h-[calc(100vh-120px)] flex items-center justify-center p-4 sm:p-6 bg-slate-50">
+      <Card className="w-full max-w-4xl shadow-xl border border-slate-200/80 bg-white rounded-3xl p-3 flex flex-col md:flex-row overflow-hidden">
+        {/* LEFT PANEL (~45% width) - Desktop only branding panel */}
+        <section className="hidden md:flex w-[45%] bg-[#0f172a] text-white rounded-2xl p-8 flex-col justify-between relative overflow-hidden shadow-inner">
+          <div className="relative z-10 flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                <span className="material-symbols-outlined text-2xl">badge</span>
+              </div>
+              <span className="font-heading font-bold text-lg text-white">Skill Passport</span>
             </div>
-            <h1 className="stitch-left-title">
-              Earn and Showcase Your Skills with Skill Passport
+            <h1 className="font-heading font-bold text-2xl leading-snug m-0 mt-2">
+              Start Your Skill Journey
             </h1>
-            <p className="stitch-left-subtitle">
-              Submit evidence, get certified by instructors, collect digital badges
+            <p className="text-sm text-slate-300 m-0">
+              Join educators and learners building transparent, verifiable portfolios.
             </p>
           </div>
 
-          {/* Center 3D Illustration Graphic */}
-          <div className="stitch-illustration-card">
+          {/* Center Illustration */}
+          <div className="my-6 flex justify-center items-center">
             <img
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxkPLZFYijE-V_k-wVqKplw5ygi-qsLByN5UA8eFs8VdsADxmPSMHwC_h4alk_znH3dMaaVqv7iqh2s8PIttdAa1eZi_2xQ7U9k0NkYnCjl0AnKsEv0oKqD746jicL1NJSLXAT1tQ0pTecc59JnrvQJQaC7hqwZUbg77MRxAC8C9zVcnUJB9Wt01kNTg2EDDtLCIkO3oBZ-9p3Oc-LHa5XJb-ZMuRpcgFWCmydB0VM1s3nsumUiphQiUWTs4htWcUT7v2LAmUtx4W4"
               alt="Student with credentials"
+              className="max-h-48 w-auto object-contain rounded-xl opacity-90"
             />
           </div>
 
-          {/* Bottom Micro-badges & Verification Chips */}
-          <div className="stitch-chips-group">
-            <div className="stitch-chip-item">
-              <span className="material-symbols-outlined">verified_user</span>
-              <span>W3C Verifiable Credentials</span>
-            </div>
-            <div className="stitch-chip-item">
-              <span className="material-symbols-outlined">token</span>
-              <span>Portable Digital Badges</span>
-            </div>
+          <div className="text-xs text-slate-400">
+            Micro-Credential and Skill Passport Platform
           </div>
         </section>
 
-        {/* RIGHT PANEL (~55% width) */}
-        <section className="stitch-right-panel">
-          <div className="stitch-right-content">
-            {/* Top Center Brand Mark */}
-            <div className="stitch-brand-header">
-              <div className="stitch-brand-icon-box">
-                <span className="material-symbols-outlined">badge</span>
+        {/* RIGHT PANEL (~55% width) - Form Panel */}
+        <section className="w-full md:w-[55%] p-6 sm:p-10 flex flex-col justify-center">
+          <div className="max-w-md w-full mx-auto flex flex-col gap-5">
+            {/* Mobile Header */}
+            <div className="md:hidden flex items-center gap-2 pb-2">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <span className="material-symbols-outlined text-2xl">badge</span>
               </div>
-              <span className="stitch-brand-name">Skill Passport</span>
+              <span className="font-heading font-bold text-lg text-slate-900">Skill Passport</span>
             </div>
 
             {/* Heading & Subtitle */}
-            <div className="stitch-form-header">
-              <h2 className="stitch-form-title">Create Account</h2>
-              <p className="stitch-form-desc">
-                Register to start building your skill passport
-              </p>
+            <div>
+              <h2 className="font-heading font-bold text-2xl text-slate-900 m-0">Create Account</h2>
+              <p className="text-sm text-slate-500 m-0 mt-1">Register to start building your skill passport</p>
             </div>
 
             {/* Error Banner */}
             {error && (
-              <div className="stitch-alert-box" role="alert">
-                <span className="material-symbols-outlined">error</span>
-                <span>{error}</span>
-              </div>
+              <Alert
+                status="danger"
+                className="text-xs"
+              >
+                {error}
+              </Alert>
             )}
 
-            {/* Registration Form */}
-            <form onSubmit={handleSubmit} noValidate>
-              {/* Full Name Field */}
-              <div className="stitch-form-group">
-                <label className="stitch-field-label" htmlFor="fullname">
-                  Full Name
-                </label>
-                <div className="stitch-input-container">
-                  <input
-                    id="fullname"
-                    name="fullname"
-                    type="text"
-                    className={`stitch-form-input ${
-                      validated && !name ? 'is-invalid' : ''
-                    }`}
-                    placeholder="Your full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
-                {validated && !name && (
-                  <div className="stitch-error-feedback">Full name is required.</div>
-                )}
-              </div>
+            {/* Registration Form with Form & TextField */}
+            <Form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <TextField
+                className="w-full"
+                name="fullname"
+                isRequired
+                isInvalid={validated && !name}
+              >
+                <Input
+                  className="w-full"
+                  placeholder="Full name"
+                  aria-label="Full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                />
+              </TextField>
 
-              {/* Email Field */}
-              <div className="stitch-form-group">
-                <label className="stitch-field-label" htmlFor="email">
-                  Email
-                </label>
-                <div className="stitch-input-container">
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    className={`stitch-form-input ${
-                      validated && !isEmailValid(email) ? 'is-invalid' : ''
-                    }`}
-                    placeholder="Email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                {validated && !isEmailValid(email) && (
-                  <div className="stitch-error-feedback">
-                    Please provide a valid email address.
+              <TextField
+                className="w-full"
+                name="email"
+                type="email"
+                isRequired
+                isInvalid={validated && !isEmailValid(email)}
+              >
+                <Input
+                  className="w-full"
+                  placeholder="Email address (name@institution.edu)"
+                  aria-label="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </TextField>
+
+              <div className="space-y-1.5">
+                <TextField
+                  className="w-full"
+                  name="password"
+                  isRequired
+                  isInvalid={validated && !isPasswordValid(password)}
+                >
+                  <InputGroup className="w-full">
+                    <InputGroup.Input
+                      className="w-full"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Password (at least 6 characters)"
+                      aria-label="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onFocus={() => setPasswordFocused(true)}
+                      onBlur={() => setPasswordFocused(false)}
+                      autoComplete="new-password"
+                    />
+                    <InputGroup.Suffix>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="text-slate-400 hover:text-slate-600 focus:outline-none pr-2"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">
+                          {showPassword ? 'visibility_off' : 'visibility'}
+                        </span>
+                      </button>
+                    </InputGroup.Suffix>
+                  </InputGroup>
+                </TextField>
+
+                {/* Password strength Meter - shown only while focused */}
+                {passwordFocused && (
+                  <div className="pt-1 px-1">
+                    <Meter
+                      value={strength.score}
+                      color={strength.color}
+                      aria-label="Password strength"
+                      className="w-full"
+                    >
+                      <Meter.Track className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <Meter.Fill className="rounded-full" />
+                      </Meter.Track>
+                    </Meter>
+                    <div className="flex justify-between text-[11px] text-slate-500 mt-1">
+                      <span>Password strength</span>
+                      <span className="font-medium text-slate-700">{strength.label}</span>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Password Field with Toggle */}
-              <div className="stitch-form-group">
-                <label className="stitch-field-label" htmlFor="password">
-                  Password
-                </label>
-                <div className="stitch-input-container">
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    className={`stitch-form-input has-toggle ${
-                      validated && !isPasswordValid(password) ? 'is-invalid' : ''
-                    }`}
-                    placeholder="Password (at least 6 characters)"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+              {/* Role Selection */}
+              <div>
+                <span className="text-xs font-semibold text-slate-700 block mb-1.5">I am a...</span>
+                <div className="grid grid-cols-2 gap-2.5">
                   <button
-                    id="togglePassword"
                     type="button"
-                    className="stitch-toggle-btn"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label="Toggle password visibility"
+                    onClick={() => setRole('student')}
+                    className={`flex flex-col text-left p-3 rounded-xl border transition-all ${
+                      role === 'student'
+                        ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                    }`}
                   >
-                    <span className="material-symbols-outlined">
-                      {showPassword ? 'visibility_off' : 'visibility'}
+                    <span className={`text-sm font-bold ${role === 'student' ? 'text-indigo-600' : 'text-slate-900'}`}>
+                      Student
                     </span>
+                    <span className="text-[11px] text-slate-500 mt-0.5">Learn & earn badges</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole('instructor')}
+                    className={`flex flex-col text-left p-3 rounded-xl border transition-all ${
+                      role === 'instructor'
+                        ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20'
+                        : 'border-slate-200 bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className={`text-sm font-bold ${role === 'instructor' ? 'text-indigo-600' : 'text-slate-900'}`}>
+                      Instructor
+                    </span>
+                    <span className="text-[11px] text-slate-500 mt-0.5">Teach & verify skills</span>
                   </button>
                 </div>
-                {validated && !isPasswordValid(password) && (
-                  <div className="stitch-error-feedback">
-                    Password must be at least 6 characters.
-                  </div>
-                )}
               </div>
 
-              {/* Role Selector */}
-              <div className="stitch-form-group">
-                <label className="stitch-field-label" htmlFor="role">
-                  I am a...
-                </label>
-                <div className="stitch-input-container">
-                  <select
-                    id="role"
-                    name="role"
-                    className="stitch-form-select"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    required
-                  >
-                    <option value="student">Student (Learn and earn badges)</option>
-                    <option value="instructor">Instructor (Teach and verify skills)</option>
-                  </select>
-                </div>
-              </div>
+              <Button
+                type="submit"
+                color="primary"
+                size="lg"
+                isLoading={loading}
+                className="w-full font-semibold shadow-sm mt-1"
+              >
+                {loading ? 'Creating account...' : 'Create Account'}
+              </Button>
+            </Form>
 
-              {/* Submission Button */}
-              <div style={{ paddingTop: '0.5rem' }}>
-                <button
-                  type="submit"
-                  className="stitch-submit-btn"
-                  disabled={loading}
-                >
-                  <span>{loading ? 'Creating account...' : 'Register'}</span>
-                  {!loading && (
-                    <span className="material-symbols-outlined">arrow_forward</span>
-                  )}
-                </button>
-              </div>
-            </form>
-
-            {/* Bottom Alternate Action Link */}
-            <div className="stitch-account-switch">
+            {/* Switch Account Link */}
+            <div className="text-center text-sm text-slate-600">
               Already have an account?{' '}
-              <Link to="/login" className="stitch-text-link">
-                Login
+              <Link to="/login" className="text-indigo-600 font-semibold hover:underline">
+                Sign In
               </Link>
+            </div>
+
+            {/* Security info behind small lock icon + Tooltip */}
+            <div className="flex items-center justify-center pt-2">
+              <Tooltip delay={0}>
+                <Tooltip.Trigger
+                  aria-label="Security information"
+                  className="text-slate-400 hover:text-slate-600 inline-flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">lock</span>
+                  <span className="text-xs">Security Protected</span>
+                </Tooltip.Trigger>
+                <Tooltip.Content className="rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-700 shadow-sm max-w-xs">
+                  <p className="m-0">End-to-end cryptographic handshake and secure credential verification enabled.</p>
+                </Tooltip.Content>
+              </Tooltip>
             </div>
           </div>
         </section>
-      </div>
+      </Card>
     </div>
   );
 };

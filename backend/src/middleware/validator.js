@@ -41,25 +41,41 @@ const validateLogin = [
   handleValidationErrors,
 ];
 
-const normalizeVerificationBody = (req, res, next) => {
-  if (req.body) {
-    if (!req.body.courseSkillId && req.body.course_skill_id) {
-      req.body.courseSkillId = req.body.course_skill_id;
+const normalizeVerificationBody = async (req, res, next) => {
+  try {
+    if (req.body) {
+      if (!req.body.courseSkillId && req.body.course_skill_id) {
+        req.body.courseSkillId = req.body.course_skill_id;
+      }
+      if (!req.body.evidenceUrl && req.body.evidence_url) {
+        req.body.evidenceUrl = req.body.evidence_url;
+      }
+      if (!req.body.courseSkillId && (req.body.skill_id || req.body.skillId)) {
+        const { CourseSkill } = require('../models');
+        const cs = await CourseSkill.findOne({
+          skill_id: req.body.skill_id || req.body.skillId,
+        });
+        if (cs) {
+          req.body.courseSkillId = cs._id.toString();
+        }
+      }
     }
-    if (!req.body.evidenceUrl && req.body.evidence_url) {
-      req.body.evidenceUrl = req.body.evidence_url;
-    }
+    next();
+  } catch (err) {
+    next();
   }
-  next();
 };
 
 const validateSubmitVerification = [
   normalizeVerificationBody,
   body('courseSkillId')
-    .notEmpty()
-    .withMessage('Course skill ID is required')
-    .isMongoId()
-    .withMessage('Valid course skill ID is required'),
+    .custom((value, { req }) => {
+      const target = value || req.body.skill_id || req.body.skillId;
+      if (!target) {
+        throw new Error('Course skill ID is required');
+      }
+      return true;
+    }),
   body('evidenceUrl')
     .trim()
     .notEmpty()

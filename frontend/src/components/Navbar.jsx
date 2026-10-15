@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Button } from '@heroui/react';
 import { useAuth } from '../context/AuthContext';
+import { toastSuccess } from '../utils/toast.js';
 import NotificationBell from './NotificationBell';
-import './Navigation.css';
+import ProfilePopover from './ProfilePopover';
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -12,151 +14,140 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     await logout();
+    toastSuccess('ออกจากระบบแล้ว', 'กลับมาใหม่เมื่อพร้อม');
     navigate('/login');
   };
-
-  const userInitial = user?.name ? user.name.trim().charAt(0).toUpperCase() : 'U';
 
   const isActive = (path) => location.pathname === path;
 
   return (
-    <header className="stitch-navbar-header">
-      <div className="stitch-navbar-container">
+    <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+      <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 flex items-center justify-between">
         {/* Brand Logo Left */}
-        <Link className="stitch-brand" to="/explore">
+        <Link className="flex items-center gap-2 text-slate-900 font-bold text-lg hover:text-primary transition-colors" to="/explore">
           <span
-            className="material-symbols-outlined stitch-brand-logo-icon"
+            className="material-symbols-outlined text-primary text-2xl"
             style={{ fontVariationSettings: "'FILL' 1" }}
           >
             verified
           </span>
-          <span>Skill Passport</span>
+          <span className="font-heading font-bold text-slate-900 text-lg">Skill Passport</span>
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav>
-          <ul className="stitch-nav-links">
-            <li className="stitch-nav-item">
+        <nav className="hidden md:flex items-center gap-1 h-full">
+          <Link
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive('/explore')
+                ? 'text-primary bg-primary/10 font-semibold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+            to="/explore"
+          >
+            Explore
+          </Link>
+
+          {isAuthenticated && user?.role === 'instructor' && (
+            <>
               <Link
-                className={`stitch-nav-link ${isActive('/explore') ? 'active' : ''}`}
-                to="/explore"
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/instructor/courses')
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+                to="/instructor/courses"
               >
-                Explore
+                My Courses
               </Link>
-            </li>
-            {isAuthenticated && user?.role === 'instructor' && (
-              <>
-                <li className="stitch-nav-item">
-                  <Link
-                    className={`stitch-nav-link ${isActive('/instructor/courses') ? 'active' : ''}`}
-                    to="/instructor/courses"
-                  >
-                    My Courses
-                  </Link>
-                </li>
-                <li className="stitch-nav-item">
-                  <Link
-                    className={`stitch-nav-link ${isActive('/instructor/requests') ? 'active' : ''}`}
-                    to="/instructor/requests"
-                  >
-                    Requests
-                  </Link>
-                </li>
-                <li className="stitch-nav-item">
-                  <Link
-                    className={`stitch-nav-link ${isActive('/instructor/analytics') ? 'active' : ''}`}
-                    to="/instructor/analytics"
-                  >
-                    Analytics
-                  </Link>
-                </li>
-              </>
-            )}
-            {isAuthenticated && user?.role === 'student' && (
-              <>
-                <li className="stitch-nav-item">
-                  <Link
-                    className={`stitch-nav-link ${isActive('/student/passport') ? 'active' : ''}`}
-                    to="/student/passport"
-                  >
-                    Passport
-                  </Link>
-                </li>
-                <li className="stitch-nav-item">
-                  <Link
-                    className={`stitch-nav-link ${isActive('/student/my-requests') || isActive('/student/submit-verification') ? 'active' : ''}`}
-                    to="/student/my-requests"
-                  >
-                    My Requests
-                  </Link>
-                </li>
-              </>
-            )}
-          </ul>
+              <Link
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/instructor/requests')
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+                to="/instructor/requests"
+              >
+                Requests
+              </Link>
+              <Link
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/instructor/analytics')
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+                to="/instructor/analytics"
+              >
+                Analytics
+              </Link>
+            </>
+          )}
+
+          {isAuthenticated && user?.role === 'student' && (
+            <>
+              <Link
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/student/passport')
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+                to="/student/passport"
+              >
+                Passport
+              </Link>
+              <Link
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/student/my-requests') || isActive('/student/submit-verification')
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+                to="/student/my-requests"
+              >
+                My Requests
+              </Link>
+            </>
+          )}
         </nav>
 
-        {/* Trailing Actions / User Profile */}
-        <div className="stitch-nav-trailing">
+        {/* Trailing Section / User Profile */}
+        <div className="flex items-center gap-3">
           {isAuthenticated ? (
             <>
-              {/* Notifications Bell Component */}
+              {/* Notifications Bell */}
               <NotificationBell />
 
-              {/* Settings Action Button */}
-              <Link
-                to="/settings"
-                className={`stitch-nav-bell-btn d-none d-sm-flex ${isActive('/settings') ? 'active' : ''}`}
-                title="Settings"
-                aria-label="Settings"
-              >
-                <span className="material-symbols-outlined">settings</span>
-              </Link>
-
-              <div className="stitch-nav-divider d-none d-sm-block"></div>
-
-              {/* User Profile Info */}
-              <Link to="/settings" className="stitch-user-chip" title="View settings">
-                <div className="stitch-user-avatar">{userInitial}</div>
-                <div className="stitch-user-info d-none d-md-flex">
-                  <span className="stitch-user-name">{user?.name}</span>
-                  <span className="stitch-user-role">{user?.role}</span>
-                </div>
-              </Link>
-
-              {/* Logout Action Button */}
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="stitch-logout-btn"
-                title="Logout"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                  logout
-                </span>
-                <span className="d-none d-sm-inline">Logout</span>
-              </button>
+              {/* Profile Popover with Settings & Logout */}
+              <ProfilePopover onLogout={handleLogout} />
             </>
           ) : (
-
-            <div className="d-flex align-items-center gap-2">
-              <Link to="/login" className="stitch-auth-btn-signin d-none d-sm-inline-flex">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="light"
+                size="sm"
+                className="hidden sm:inline-flex text-xs font-medium"
+                onPress={() => navigate('/login')}
+              >
                 Sign In
-              </Link>
-              <Link to="/register" className="stitch-auth-btn-register d-none d-sm-inline-flex">
+              </Button>
+              <Button
+                color="primary"
+                size="sm"
+                className="hidden sm:inline-flex text-xs font-medium shadow-xs"
+                onPress={() => navigate('/register')}
+              >
                 Register
-              </Link>
+              </Button>
             </div>
           )}
 
           {/* Mobile Menu Hamburger Toggle */}
           <button
             type="button"
-            className="stitch-mobile-menu-btn"
+            className="md:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle navigation"
             aria-expanded={mobileMenuOpen}
           >
-            <span className="material-symbols-outlined">
+            <span className="material-symbols-outlined text-2xl">
               {mobileMenuOpen ? 'close' : 'menu'}
             </span>
           </button>
@@ -165,10 +156,12 @@ const Navbar = () => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="stitch-mobile-drawer">
+        <div className="md:hidden flex flex-col p-4 border-t border-slate-200 bg-white gap-1 shadow-md">
           <Link
             to="/explore"
-            className={`stitch-mobile-link ${isActive('/explore') ? 'active' : ''}`}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              isActive('/explore') ? 'text-primary bg-primary/10 font-semibold' : 'text-slate-600'
+            }`}
             onClick={() => setMobileMenuOpen(false)}
           >
             Explore Skills
@@ -178,39 +171,60 @@ const Navbar = () => {
             <>
               <Link
                 to="/instructor/courses"
-                className={`stitch-mobile-link ${isActive('/instructor/courses') ? 'active' : ''}`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/instructor/courses')
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-slate-600'
+                }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 My Courses
               </Link>
               <Link
                 to="/instructor/requests"
-                className={`stitch-mobile-link ${isActive('/instructor/requests') ? 'active' : ''}`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/instructor/requests')
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-slate-600'
+                }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Requests
               </Link>
               <Link
                 to="/instructor/analytics"
-                className={`stitch-mobile-link ${isActive('/instructor/analytics') ? 'active' : ''}`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/instructor/analytics')
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-slate-600'
+                }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Analytics
               </Link>
             </>
           )}
+
           {isAuthenticated && user?.role === 'student' && (
             <>
               <Link
                 to="/student/passport"
-                className={`stitch-mobile-link ${isActive('/student/passport') ? 'active' : ''}`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/student/passport')
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-slate-600'
+                }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Passport
               </Link>
               <Link
                 to="/student/my-requests"
-                className={`stitch-mobile-link ${isActive('/student/my-requests') ? 'active' : ''}`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/student/my-requests')
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-slate-600'
+                }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 My Requests
@@ -222,14 +236,22 @@ const Navbar = () => {
             <>
               <Link
                 to="/notifications"
-                className={`stitch-mobile-link ${isActive('/notifications') ? 'active' : ''}`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/notifications')
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-slate-600'
+                }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Notifications
               </Link>
               <Link
                 to="/settings"
-                className={`stitch-mobile-link ${isActive('/settings') ? 'active' : ''}`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/settings')
+                    ? 'text-primary bg-primary/10 font-semibold'
+                    : 'text-slate-600'
+                }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Settings
@@ -237,42 +259,45 @@ const Navbar = () => {
             </>
           )}
 
-
-
-          {!isAuthenticated ? (
-            <div className="stitch-mobile-auth-group">
-              <Link
-                to="/login"
-                className="stitch-mobile-auth-btn-signin"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/register"
-                className="stitch-mobile-auth-btn-register"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Register
-              </Link>
-            </div>
-          ) : (
-            <div className="stitch-mobile-auth-group">
-              <button
-                type="button"
-                className="stitch-mobile-logout-btn"
-                onClick={() => {
+          <div className="pt-3 mt-2 border-t border-slate-100 flex flex-col gap-2">
+            {!isAuthenticated ? (
+              <>
+                <Button
+                  variant="flat"
+                  fullWidth
+                  onPress={() => {
+                    setMobileMenuOpen(false);
+                    navigate('/login');
+                  }}
+                >
+                  Sign In
+                </Button>
+                <Button
+                  color="primary"
+                  fullWidth
+                  onPress={() => {
+                    setMobileMenuOpen(false);
+                    navigate('/register');
+                  }}
+                >
+                  Register
+                </Button>
+              </>
+            ) : (
+              <Button
+                color="danger"
+                variant="flat"
+                fullWidth
+                onPress={() => {
                   setMobileMenuOpen(false);
                   handleLogout();
                 }}
+                startContent={<span className="material-symbols-outlined text-[18px]">logout</span>}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                  logout
-                </span>
-                <span>Logout ({user?.name || user?.role})</span>
-              </button>
-            </div>
-          )}
+                Logout ({user?.name || user?.role})
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </header>

@@ -10,7 +10,7 @@ const getNotifications = async (req, res, next) => {
   try {
     const userId = req.user._id || req.user.id;
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
+    const limit = Math.max(1, parseInt(req.query.limit, 10) || 20);
     const skip = (page - 1) * limit;
 
     const query = { user_id: userId };
@@ -26,12 +26,14 @@ const getNotifications = async (req, res, next) => {
         .limit(limit),
     ]);
 
+    const totalPages = Math.ceil(total / limit) || 1;
     const hasMore = skip + notifications.length < total;
 
     res.status(200).json({
-      notifications,
+      data: notifications,
       total,
       page,
+      totalPages,
       hasMore,
     });
   } catch (error) {

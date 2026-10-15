@@ -82,12 +82,14 @@ beforeEach(async () => {
     name: 'Express.js',
     description: 'REST APIs',
     criteria: 'Build an API',
+    is_open_for_verification: true,
   });
 
   skill2 = await MicroSkill.create({
     name: 'React',
     description: 'Frontend',
     criteria: 'Build a SPA',
+    is_open_for_verification: true,
   });
 
   courseSkill1 = await CourseSkill.create({
@@ -172,6 +174,30 @@ describe('Verification Request Controller Tests (TON-75)', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.message).toMatch(/Course skill not found/i);
+    });
+
+    it('4b. Submit when skill is NOT open for verification returns 403 (TON-224)', async () => {
+      const closedSkill = await MicroSkill.create({
+        name: 'Closed Skill',
+        description: 'Not open yet',
+        criteria: 'Do nothing',
+        is_open_for_verification: false,
+      });
+      const closedCs = await CourseSkill.create({
+        course_id: course._id,
+        skill_id: closedSkill._id,
+      });
+
+      const res = await request(app)
+        .post('/api/verification-requests')
+        .set('Authorization', `Bearer ${student1Token}`)
+        .send({
+          courseSkillId: closedCs._id.toString(),
+          evidenceUrl: 'https://github.com/alice/project',
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toBe('Skill is not open for verification');
     });
 
     it('5. Submit when NOT enrolled in course returns 403 enrollment required', async () => {
@@ -466,14 +492,14 @@ describe('Verification Request Controller Tests (TON-75)', () => {
         .set('Authorization', `Bearer ${student1Token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.requests).toBeDefined();
-      expect(res.body.requests).toHaveLength(2);
+      expect(res.body.data).toBeDefined();
+      expect(res.body.data).toHaveLength(2);
 
-      const skillNames = res.body.requests.map((r) => r.skillName);
+      const skillNames = res.body.data.map((r) => r.skillName);
       expect(skillNames).toContain('Express.js');
       expect(skillNames).toContain('React');
 
-      const courseNames = res.body.requests.map((r) => r.courseName);
+      const courseNames = res.body.data.map((r) => r.courseName);
       expect(courseNames).toContain('Web Development');
     });
 
@@ -483,7 +509,7 @@ describe('Verification Request Controller Tests (TON-75)', () => {
         .set('Authorization', `Bearer ${student2Token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.requests).toEqual([]);
+      expect(res.body.data).toEqual([]);
     });
 
     it('22. Filter by status ?status=pending returns only pending requests', async () => {
@@ -492,8 +518,8 @@ describe('Verification Request Controller Tests (TON-75)', () => {
         .set('Authorization', `Bearer ${student1Token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.requests).toHaveLength(1);
-      expect(res.body.requests[0].status).toBe('pending');
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].status).toBe('pending');
     });
 
     it("23. Student2 cannot see Student1's requests", async () => {
@@ -502,7 +528,43 @@ describe('Verification Request Controller Tests (TON-75)', () => {
         .set('Authorization', `Bearer ${student2Token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.requests).toEqual([]);
+      expect(res.body.data).toEqual([]);
+    });
+
+    it('24. Pagination with ?page=1&limit=1 returns 1 item with pagination metadata', async () => {
+      const res = await request(app)
+        .get('/api/verification-requests/my?page=1&limit=1')
+        .set('Authorization', `Bearer ${student1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.total).toBe(2);
+      expect(res.body.page).toBe(1);
+      expect(res.body.totalPages).toBe(2);
+    });
+
+    it('25. Pagination boundary - page beyond totalPages returns empty array', async () => {
+      const res = await request(app)
+        .get('/api/verification-requests/my?page=99&limit=10')
+        .set('Authorization', `Bearer ${student1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual([]);
+      expect(res.body.data).toEqual([]);
+      expect(res.body.total).toBe(2);
+      expect(res.body.totalPages).toBe(1);
+    });
+
+    it('26. Pagination boundary - limit larger than dataset returns all items', async () => {
+      const res = await request(app)
+        .get('/api/verification-requests/my?page=1&limit=50')
+        .set('Authorization', `Bearer ${student1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data).toHaveLength(2);
+      expect(res.body.total).toBe(2);
+      expect(res.body.totalPages).toBe(1);
     });
   });
 });

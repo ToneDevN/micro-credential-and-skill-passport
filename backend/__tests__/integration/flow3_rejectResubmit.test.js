@@ -56,6 +56,7 @@ describe('Flow 3: Reject and Re-submit Cycle [TON-96]', () => {
         name: 'Express.js',
         description: 'Building RESTful APIs with Node.js and Express',
         criteria: 'Implement secure REST endpoints and authentication middleware',
+        is_open_for_verification: true,
       });
     skill_id_1 = s1Res.body.skill._id;
 
@@ -66,6 +67,7 @@ describe('Flow 3: Reject and Re-submit Cycle [TON-96]', () => {
         name: 'MongoDB',
         description: 'NoSQL Database Schema Design & Mongoose',
         criteria: 'Design schemas, indexes, and complex aggregation pipelines',
+        is_open_for_verification: true,
       });
     skill_id_2 = s2Res.body.skill._id;
 
@@ -128,7 +130,7 @@ describe('Flow 3: Reject and Re-submit Cycle [TON-96]', () => {
       .set('Authorization', `Bearer ${token_instructor}`);
 
     expect(res.status).toBe(200);
-    const found = res.body.requests.find((r) => r._id === request_id_2);
+    const found = res.body.data.find((r) => r._id === request_id_2);
     expect(found).toBeDefined();
   });
 
@@ -151,7 +153,7 @@ describe('Flow 3: Reject and Re-submit Cycle [TON-96]', () => {
       .set('Authorization', `Bearer ${token_student}`);
 
     expect(res.status).toBe(200);
-    const found = res.body.requests.find((r) => r._id === request_id_2);
+    const found = res.body.data.find((r) => r._id === request_id_2);
     expect(found).toBeDefined();
     expect(found.status).toBe('rejected');
     expect(found.feedback).toContain('Please add error handling');
@@ -165,9 +167,10 @@ describe('Flow 3: Reject and Re-submit Cycle [TON-96]', () => {
         evidence_url: 'https://github.com/alice/mongo-v2-improved',
       });
 
-    expect(res.status).toBe(200);
+    expect([200, 201]).toContain(res.status);
     expect(res.body.request.status).toBe('pending');
     expect(res.body.request.evidence_url).toBe('https://github.com/alice/mongo-v2-improved');
+    request_id_2 = res.body.request._id;
   });
 
   it('Step 6: GET /api/v1/verification-requests/instructor?status=pending — Instructor sees pending request again', async () => {
@@ -176,7 +179,7 @@ describe('Flow 3: Reject and Re-submit Cycle [TON-96]', () => {
       .set('Authorization', `Bearer ${token_instructor}`);
 
     expect(res.status).toBe(200);
-    const found = res.body.requests.find((r) => r._id === request_id_2);
+    const found = res.body.data.find((r) => r._id === request_id_2);
     expect(found).toBeDefined();
     expect(found.status).toBe('pending');
   });
@@ -203,14 +206,15 @@ describe('Flow 3: Reject and Re-submit Cycle [TON-96]', () => {
     expect(names).toContain('MongoDB');
   });
 
-  it('Verify Final State: 2 approved requests & totalBadges: 2', async () => {
+  it('Verify Final State: 2 approved badges in passport, old rejected request preserved', async () => {
     const requestsRes = await request(app)
       .get('/api/v1/verification-requests/my')
       .set('Authorization', `Bearer ${token_student}`);
 
     expect(requestsRes.status).toBe(200);
-    expect(requestsRes.body.requests.length).toBe(2);
-    expect(requestsRes.body.requests.every((r) => r.status === 'approved')).toBe(true);
+    expect(requestsRes.body.data.length).toBe(3);
+    const approvedRequests = requestsRes.body.data.filter((r) => r.status === 'approved');
+    expect(approvedRequests.length).toBe(2);
 
     const passportRes = await request(app)
       .get('/api/v1/passport')

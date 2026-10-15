@@ -51,6 +51,7 @@ describe('Flow 4: Edit and Cancel Pending Request [TON-97]', () => {
         name: 'Git Actions',
         description: 'GitHub workflows',
         criteria: 'Configure lint and test pipeline',
+        is_open_for_verification: true,
       });
     f4_skill_id = skillRes.body.skill._id;
 
@@ -108,7 +109,7 @@ describe('Flow 4: Edit and Cancel Pending Request [TON-97]', () => {
       .set('Authorization', `Bearer ${f4_token_student}`);
 
     expect(res.status).toBe(200);
-    const found = res.body.requests.find((r) => r._id === f4_request_id);
+    const found = res.body.data.find((r) => r._id === f4_request_id);
     expect(found).toBeDefined();
     expect(found.evidence_url).toBe('https://github.com/correct/repo');
     expect(found.status).toBe('pending');
@@ -129,7 +130,7 @@ describe('Flow 4: Edit and Cancel Pending Request [TON-97]', () => {
       .set('Authorization', `Bearer ${f4_token_student}`);
 
     expect(res.status).toBe(200);
-    const found = res.body.requests.find((r) => r._id === f4_request_id);
+    const found = res.body.data.find((r) => r._id === f4_request_id);
     expect(found).toBeUndefined();
   });
 
@@ -139,7 +140,7 @@ describe('Flow 4: Edit and Cancel Pending Request [TON-97]', () => {
       .set('Authorization', `Bearer ${f4_token_instructor}`);
 
     expect(res.status).toBe(200);
-    const found = res.body.requests.find((r) => r._id === f4_request_id);
+    const found = res.body.data.find((r) => r._id === f4_request_id);
     expect(found).toBeUndefined();
   });
 

@@ -2,12 +2,14 @@ const mongoose = require('mongoose');
 const {
   MicroSkill,
   CourseSkill,
+  Course,
   Enrollment,
   StudentSkillStatus,
   VerificationRequest,
   Badge,
   StudentPassport,
 } = require('../models');
+const notificationService = require('../services/notificationService');
 
 /**
  * @desc    Submit a new verification request for an enrolled course skill
@@ -32,6 +34,12 @@ const submitRequest = async (req, res, next) => {
       }
     } else if (targetSkillId && mongoose.Types.ObjectId.isValid(targetSkillId)) {
       courseSkill = await CourseSkill.findOne({ skill_id: targetSkillId });
+      if (!courseSkill) {
+        courseSkill = await CourseSkill.findById(targetSkillId);
+        if (courseSkill) {
+          targetSkillId = courseSkill.skill_id?._id || courseSkill.skill_id;
+        }
+      }
     }
 
     if (targetSkillId) {
@@ -100,16 +108,23 @@ const submitRequest = async (req, res, next) => {
       });
     }
 
-    // Verify student is enrolled in the course
-    const enrollment = await Enrollment.findOne({
+    // Auto-enroll student into the course if not already enrolled (Course enrollment not required beforehand)
+    let enrollment = await Enrollment.findOne({
       student_id,
       course_id: courseSkill.course_id,
     });
 
     if (!enrollment) {
-      return res.status(403).json({
-        message: 'You must be enrolled in this course to submit a request',
+      enrollment = await Enrollment.create({
+        student_id,
+        course_id: courseSkill.course_id,
+        status: 'active',
+        enrolled_at: new Date(),
       });
+    } else if (enrollment.status === 'dropped') {
+      enrollment.status = 'active';
+      enrollment.enrolled_at = new Date();
+      await enrollment.save();
     }
 
     // Find or create StudentSkillStatus
@@ -160,6 +175,24 @@ const submitRequest = async (req, res, next) => {
     // Update skill status to pending
     studentSkillStatus.status = 'pending';
     await studentSkillStatus.save();
+
+    // Notify instructor about new verification request (isolated, non-blocking)
+    try {
+      const course = await Course.findById(courseSkill.course_id);
+      if (course && course.instructor_id) {
+        const studentName = req.user?.name || 'นักศึกษา';
+        const skillName = skillDoc ? skillDoc.name : 'ทักษะ';
+        const courseName = course.name || 'หลักสูตร';
+        await notificationService.create(
+          course.instructor_id,
+          'new_verification_request',
+          `${studentName} ได้ส่งคำขอตรวจประเมินทักษะ "${skillName}" ในหลักสูตร "${courseName}"`,
+          verificationRequest._id
+        );
+      }
+    } catch (notifErr) {
+      console.warn('[submitRequest] Failed to notify instructor:', notifErr.message);
+    }
 
     res.status(201).json({
       success: true,

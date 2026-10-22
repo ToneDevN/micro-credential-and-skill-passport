@@ -125,13 +125,13 @@ const MyCoursesSection = ({ onRefreshPassport }) => {
         const isCompleted = item.status === 'completed' || (total > 0 && earned >= total);
         const isProcessing = actionLoadingId === course._id;
         const isExpanded = expandedCourseId === course._id;
+        const courseSkills = item.skills || course.skills || [];
 
         return (
           <Card
             key={item._id || course._id}
-            className={`bg-white border rounded-2xl shadow-sm transition-all hover:shadow-md ${
-              isCompleted ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-slate-200/80'
-            }`}
+            className={`bg-white border rounded-2xl shadow-sm transition-all hover:shadow-md ${isCompleted ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-slate-200/80'
+              }`}
           >
             {/* Course Face: Title + ProgressBar only */}
             <CardHeader className="p-4 pb-2 flex flex-col gap-2">
@@ -210,6 +210,72 @@ const MyCoursesSection = ({ onRefreshPassport }) => {
                     <span className="font-semibold">{course.instructor.name || course.instructor}</span>
                   </div>
                 )}
+
+                {/* Skills list with verified checkmarks */}
+                <div className="pt-2 border-t border-slate-200/60 space-y-2">
+                  <div className="flex items-center justify-between text-slate-700">
+                    <span className="font-semibold text-slate-800">Skills ({courseSkills.length})</span>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      {earned} / {total} verified
+                    </span>
+                  </div>
+
+                  {courseSkills.length === 0 ? (
+                    <p className="text-slate-400 italic text-[11px] m-0">
+                      No skills found in this course.
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
+                      {courseSkills.map((skill) => {
+                        const isVerified =
+                          skill.isVerified ||
+                          skill.status === 'approved' ||
+                          skill.status === 'certified';
+                        const isPending = skill.status === 'pending';
+
+                        return (
+                          <div
+                            key={skill._id || skill.course_skill_id}
+                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${isVerified
+                                ? 'bg-emerald-50/70 border-emerald-200/80 text-emerald-900'
+                                : isPending
+                                  ? 'bg-amber-50/60 border-amber-200/80 text-amber-900'
+                                  : 'bg-white border-slate-200/70 text-slate-700'
+                              }`}
+                          >
+                            <div className="flex items-center min-w-0 pr-2">
+                              <span
+                                className={`truncate font-medium ${
+                                  isVerified ? 'text-emerald-950 font-semibold' : 'text-slate-800'
+                                }`}
+                                title={skill.name}
+                              >
+                                {skill.name}
+                              </span>
+                            </div>
+
+                            <div className="shrink-0 flex items-center">
+                              {isVerified ? (
+                                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-700 bg-emerald-100/90 px-1.5 py-0.5 rounded-md">
+                                  <span className="material-symbols-outlined text-[12px]">done</span>
+                                  Verified
+                                </span>
+                              ) : isPending ? (
+                                <span className="inline-flex items-center text-[10px] font-medium text-amber-700 bg-amber-100/90 px-1.5 py-0.5 rounded-md">
+                                  Pending
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400">
+                                  Not verified
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
                 <div className="flex justify-between items-center pt-2 border-t border-slate-200/60">
                   <Button
                     size="sm"

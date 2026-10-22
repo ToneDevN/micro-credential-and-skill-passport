@@ -137,9 +137,15 @@ const SubmitVerificationPage = () => {
 
     try {
       setSubmitting(true);
+      const courseSkillId = currentSkill?.courseSkillId || selectedCourseSkillId;
+      const skillId = currentSkill?._id;
+
       const res = await api.post('/verification-requests', {
+        courseSkillId,
+        course_skill_id: courseSkillId,
+        skillId,
+        skill_id: skillId,
         courseId: selectedCourseId,
-        skillId: selectedCourseSkillId,
         evidenceUrl: evidenceUrl.trim(),
         notes: notes.trim(),
       });
@@ -168,12 +174,12 @@ const SubmitVerificationPage = () => {
         setError(msg || 'A pending or approved request already exists for this skill.');
         toastWarning('ส่งคำขอซ้ำ', msg || 'คุณได้ส่งคำขอสำหรับทักษะนี้ไปแล้ว หรือได้รับการอนุมัติแล้ว');
       } else if (status === 403) {
-        setError('You are not authorized to submit verification for this course.');
-        toastError('ไม่มีสิทธิ์เข้าถึง', 'คุณยังไม่ได้ลงทะเบียนในหลักสูตรนี้ หรือไม่มีสิทธิ์ส่งคำขอ');
+        setError(msg || 'You are not authorized to submit verification for this skill.');
+        toastError('ไม่มีสิทธิ์เข้าถึง', msg || 'ทักษะนี้ยังไม่เปิดให้ยื่นขอรับการตรวจสอบ หรือไม่มีสิทธิ์ส่งคำขอ');
       } else {
         const errorMsg =
           msg ||
-          'Failed to submit verification request. Please check that you are enrolled in this course.';
+          'Failed to submit verification request. Please try again.';
         setError(errorMsg);
         handleApiError(err);
       }

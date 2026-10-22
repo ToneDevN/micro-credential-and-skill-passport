@@ -13,7 +13,7 @@ import {
   TextArea
 } from '@heroui/react';
 import api from '../../services/api';
-import { toastSuccess } from '../../utils/toast.js';
+import { toastSuccess, toastWarning } from '../../utils/toast.js';
 import { handleApiError } from '../../utils/apiErrorToast.js';
 
 const SkillManagementPage = () => {
@@ -120,24 +120,30 @@ const SkillManagementPage = () => {
       errors.name = 'Skill name must be at least 2 characters';
     }
 
-    if (!formData.description.trim()) {
+    if (!formData.description || !formData.description.trim()) {
       errors.description = 'Description is required';
-    } else if (formData.description.trim().length < 5) {
-      errors.description = 'Description must be at least 5 characters';
+    } else if (formData.description.trim().length < 10) {
+      errors.description = 'Description must be at least 10 characters';
     }
 
-    if (!formData.criteria.trim()) {
+    if (!formData.criteria || !formData.criteria.trim()) {
       errors.criteria = 'Certification criteria is required';
-    } else if (formData.criteria.trim().length < 5) {
-      errors.criteria = 'Criteria must be at least 5 characters';
+    } else if (formData.criteria.trim().length < 10) {
+      errors.criteria = 'Certification criteria must be at least 10 characters';
     }
 
     setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0];
+      toastWarning('ข้อมูลไม่ครบถ้วน', firstError);
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e?.preventDefault) e.preventDefault();
+    if (submitting) return;
     if (!validateForm()) return;
 
     try {
@@ -196,7 +202,15 @@ const SkillManagementPage = () => {
       await fetchCourseSkills();
     } catch (err) {
       console.error('Skill delete failed:', err);
-      const msg = err.response?.data?.message || 'Failed to delete skill.';
+      let msg = err.response?.data?.message || 'Failed to delete skill.';
+      if (msg === 'Cannot delete skill with approved badges') {
+        msg = 'ไม่สามารถลบทักษะนี้ได้ เนื่องจากมีนักศึกษาได้รับอนุมัติ Badge ของทักษะนี้แล้ว';
+      } else if (
+        msg === 'Cannot delete skill with pending verification requests' ||
+        msg.includes('pending')
+      ) {
+        msg = 'ไม่สามารถลบทักษะนี้ได้ เนื่องจากยังมีคำขอตรวจสอบทักษะที่อยู่ระหว่างดำเนินการ (Pending) กรุณาตรวจสอบคำขอให้เสร็จสิ้นก่อน';
+      }
       setDeleteError(msg);
       handleApiError(err);
     } finally {
@@ -405,96 +419,107 @@ const SkillManagementPage = () => {
             <Modal.Container>
               <Modal.Dialog className="sm:max-w-lg">
                 <Modal.CloseTrigger />
-                <Modal.Header>
-                  <Modal.Heading className="text-base font-bold text-slate-900 m-0">
-                    {editingSkill ? 'Edit Micro-Skill' : 'Add New Micro-Skill'}
-                  </Modal.Heading>
-                </Modal.Header>
-                <Modal.Body className="p-4 sm:p-5 flex flex-col gap-3">
-                  {formErrors.api && <Alert status="danger" className="text-xs">{formErrors.api}</Alert>}
+                <form onSubmit={handleSubmit}>
+                  <Modal.Header>
+                    <Modal.Heading className="text-base font-bold text-slate-900 m-0">
+                      {editingSkill ? 'Edit Micro-Skill' : 'Add New Micro-Skill'}
+                    </Modal.Heading>
+                  </Modal.Header>
+                  <Modal.Body className="p-4 sm:p-5 flex flex-col gap-3">
+                    {formErrors.api && <Alert status="danger" className="text-xs">{formErrors.api}</Alert>}
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-slate-700" htmlFor="skill-name">
-                      Skill Name
-                    </label>
-                    <Input
-                      id="skill-name"
-                      type="text"
-                      placeholder="e.g. Asynchronous JavaScript & Promises"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      disabled={submitting}
-                      className="w-full text-xs"
-                      autoFocus
-                    />
-                    {formErrors.name && (
-                      <span className="text-xs text-rose-600">{formErrors.name}</span>
-                    )}
-                  </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-slate-700" htmlFor="skill-name">
+                        Skill Name
+                      </label>
+                      <Input
+                        id="skill-name"
+                        type="text"
+                        placeholder="e.g. Asynchronous JavaScript & Promises"
+                        value={formData.name}
+                        onChange={(e) => {
+                          setFormData({ ...formData, name: e.target.value });
+                          if (formErrors.name) setFormErrors((prev) => ({ ...prev, name: null }));
+                        }}
+                        disabled={submitting}
+                        className="w-full text-xs"
+                        autoFocus
+                      />
+                      {formErrors.name && (
+                        <span className="text-xs text-rose-600">{formErrors.name}</span>
+                      )}
+                    </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-slate-700" htmlFor="skill-desc">
-                      Description
-                    </label>
-                    <TextArea
-                      id="skill-desc"
-                      rows={2}
-                      placeholder="Brief summary of this competency..."
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      disabled={submitting}
-                      className="w-full text-xs"
-                    />
-                    {formErrors.description && (
-                      <span className="text-xs text-rose-600">{formErrors.description}</span>
-                    )}
-                  </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-slate-700" htmlFor="skill-desc">
+                        Description
+                      </label>
+                      <TextArea
+                        id="skill-desc"
+                        rows={2}
+                        placeholder="Brief summary of this competency..."
+                        value={formData.description}
+                        onChange={(e) => {
+                          setFormData({ ...formData, description: e.target.value });
+                          if (formErrors.description) setFormErrors((prev) => ({ ...prev, description: null }));
+                        }}
+                        disabled={submitting}
+                        className="w-full text-xs"
+                      />
+                      {formErrors.description && (
+                        <span className="text-xs text-rose-600">{formErrors.description}</span>
+                      )}
+                    </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-slate-700" htmlFor="skill-criteria">
-                      Certification Criteria
-                    </label>
-                    <TextArea
-                      id="skill-criteria"
-                      rows={3}
-                      placeholder="What evidence is required for approval? (e.g. GitHub repository with unit tests passed)"
-                      value={formData.criteria}
-                      onChange={(e) => setFormData({ ...formData, criteria: e.target.value })}
-                      disabled={submitting}
-                      className="w-full text-xs"
-                    />
-                    {formErrors.criteria && (
-                      <span className="text-xs text-rose-600">{formErrors.criteria}</span>
-                    )}
-                  </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-slate-700" htmlFor="skill-criteria">
+                        Certification Criteria
+                      </label>
+                      <TextArea
+                        id="skill-criteria"
+                        rows={3}
+                        placeholder="What evidence is required for approval? (e.g. GitHub repository with unit tests passed)"
+                        value={formData.criteria}
+                        onChange={(e) => {
+                          setFormData({ ...formData, criteria: e.target.value });
+                          if (formErrors.criteria) setFormErrors((prev) => ({ ...prev, criteria: null }));
+                        }}
+                        disabled={submitting}
+                        className="w-full text-xs"
+                      />
+                      {formErrors.criteria && (
+                        <span className="text-xs text-rose-600">{formErrors.criteria}</span>
+                      )}
+                    </div>
 
-                  <div className="flex items-center gap-2 pt-1">
-                    <input
-                      type="checkbox"
-                      id="skill-open-verification"
-                      checked={Boolean(formData.is_open_for_verification)}
-                      onChange={(e) =>
-                        setFormData({ ...formData, is_open_for_verification: e.target.checked })
-                      }
-                      className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
-                      disabled={submitting}
-                    />
-                    <label
-                      htmlFor="skill-open-verification"
-                      className="text-xs font-semibold text-slate-700 cursor-pointer"
-                    >
-                      Open for Verification (Allow student submissions)
-                    </label>
-                  </div>
-                </Modal.Body>
-                <Modal.Footer className="flex justify-end gap-2 p-3 border-t border-slate-100">
-                  <Button size="sm" variant="secondary" onPress={handleCloseModal} isDisabled={submitting}>
-                    Cancel
-                  </Button>
-                  <Button size="sm" color="primary" isLoading={submitting} onPress={handleSubmit}>
-                    {editingSkill ? 'Save Changes' : 'Add Skill'}
-                  </Button>
-                </Modal.Footer>
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="checkbox"
+                        id="skill-open-verification"
+                        checked={Boolean(formData.is_open_for_verification)}
+                        onChange={(e) =>
+                          setFormData({ ...formData, is_open_for_verification: e.target.checked })
+                        }
+                        className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
+                        disabled={submitting}
+                      />
+                      <label
+                        htmlFor="skill-open-verification"
+                        className="text-xs font-semibold text-slate-700 cursor-pointer"
+                      >
+                        Open for Verification (Allow student submissions)
+                      </label>
+                    </div>
+                  </Modal.Body>
+                  <Modal.Footer className="flex justify-end gap-2 p-3 border-t border-slate-100">
+                    <Button size="sm" variant="secondary" onPress={handleCloseModal} isDisabled={submitting}>
+                      Cancel
+                    </Button>
+                    <Button size="sm" color="primary" type="submit" isLoading={submitting} onPress={handleSubmit}>
+                      {editingSkill ? 'Save Changes' : 'Add Skill'}
+                    </Button>
+                  </Modal.Footer>
+                </form>
               </Modal.Dialog>
             </Modal.Container>
           </Modal.Backdrop>

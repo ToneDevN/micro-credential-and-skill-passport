@@ -5,6 +5,7 @@ const {
   Course,
   StudentSkillStatus,
   StudentPassport,
+  VerificationRequest,
 } = require('../models');
 const { getStudentSkillStatuses } = require('../services/studentSkillService');
 
@@ -341,7 +342,27 @@ const deleteSkill = async (req, res, next) => {
       return res.status(400).json({ message: 'Cannot delete skill with approved badges' });
     }
 
-    // Delete non-approved student statuses
+    // Pending protection check
+    const hasPendingStatus = await StudentSkillStatus.exists({
+      course_skill_id: courseSkill._id,
+      status: 'pending',
+    });
+
+    const hasPendingRequest = await VerificationRequest.exists({
+      student_skill_status_id: { $in: statusIds },
+      status: 'pending',
+    });
+
+    if (hasPendingStatus || hasPendingRequest) {
+      return res.status(400).json({
+        message: 'Cannot delete skill with pending verification requests',
+      });
+    }
+
+    // Delete non-approved student statuses and their verification requests
+    await VerificationRequest.deleteMany({
+      student_skill_status_id: { $in: statusIds },
+    });
     await StudentSkillStatus.deleteMany({ course_skill_id: courseSkill._id });
 
     // Delete courseSkill link

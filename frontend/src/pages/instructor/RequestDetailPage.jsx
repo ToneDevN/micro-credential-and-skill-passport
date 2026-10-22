@@ -157,7 +157,7 @@ const RequestDetailPage = ({
 
   // Reject action
   const handleConfirmReject = async (e) => {
-    if (e) e.preventDefault();
+    if (e?.preventDefault) e.preventDefault();
     if (request.status !== 'pending' || isRejecting) return;
 
     if (!feedback.trim() || feedback.trim().length < 5) {

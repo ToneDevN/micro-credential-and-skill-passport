@@ -11,6 +11,7 @@ const {
   StudentSkillStatus,
   StudentPassport,
   Enrollment,
+  VerificationRequest,
 } = require('../src/models');
 
 let mongoServer;
@@ -554,6 +555,42 @@ describe('Course Management CRUD API Tests (TON-82)', () => {
 
       // Ensure course was NOT deleted
       const courseStillExists = await Course.findById(courseWithBadge._id);
+      expect(courseStillExists).toBeDefined();
+    });
+
+    it('19b. Delete course with pending verification requests returns 400 "Cannot delete course with pending verification requests"', async () => {
+      const courseWithPending = await Course.create({
+        name: 'Pending Course',
+        description: 'Course with a pending review',
+        instructor_id: instructor1._id,
+      });
+
+      const cs = await CourseSkill.create({
+        course_id: courseWithPending._id,
+        skill_id: skill1._id,
+      });
+
+      const sss = await StudentSkillStatus.create({
+        student_id: student._id,
+        course_skill_id: cs._id,
+        status: 'pending',
+      });
+
+      await VerificationRequest.create({
+        student_skill_status_id: sss._id,
+        evidence_url: 'https://github.com/student/pending-course-repo',
+        status: 'pending',
+      });
+
+      const res = await request(app)
+        .delete(`/api/courses/${courseWithPending._id}`)
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/pending verification requests/i);
+
+      // Ensure course was NOT deleted
+      const courseStillExists = await Course.findById(courseWithPending._id);
       expect(courseStillExists).toBeDefined();
     });
 

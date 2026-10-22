@@ -200,7 +200,7 @@ describe('Verification Request Controller Tests (TON-75)', () => {
       expect(res.body.message).toBe('Skill is not open for verification');
     });
 
-    it('5. Submit when NOT enrolled in course returns 403 enrollment required', async () => {
+    it('5. Submit when NOT previously enrolled auto-enrolls and creates request', async () => {
       const res = await request(app)
         .post('/api/verification-requests')
         .set('Authorization', `Bearer ${student2Token}`)
@@ -209,8 +209,15 @@ describe('Verification Request Controller Tests (TON-75)', () => {
           evidenceUrl: 'https://github.com/bob/project',
         });
 
-      expect(res.status).toBe(403);
-      expect(res.body.message).toMatch(/enrolled/i);
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+
+      const enr = await Enrollment.findOne({
+        student_id: student2._id,
+        course_id: courseSkill1.course_id,
+      });
+      expect(enr).toBeDefined();
+      expect(enr.status).toBe('active');
     });
 
     it('6. Submit when skill already has pending request returns 400', async () => {

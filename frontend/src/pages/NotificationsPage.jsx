@@ -16,8 +16,10 @@ import {
 } from '../services/notificationService';
 import { formatRelativeTime } from '../components/NotificationBell';
 import { toastSuccess } from '../utils/toast.js';
+import { useAuth } from '../context/AuthContext';
 
 const NotificationsPage = () => {
+  const { user } = useAuth();
   const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'verification' | 'course'
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -100,8 +102,12 @@ const NotificationsPage = () => {
     // Navigation link based on notification type
     if (notification.link) {
       navigate(notification.link);
-    } else if (/verification|submission/i.test(notification.type || '')) {
-      navigate('/student/my-requests');
+    } else if (/verification|submission|request/i.test(notification.type || '')) {
+      if (user?.role === 'instructor') {
+        navigate(notification.related_id ? `/instructor/requests/${notification.related_id}` : '/instructor/requests');
+      } else {
+        navigate('/student/my-requests');
+      }
     } else if (/badge/i.test(notification.type || '')) {
       navigate('/student/passport');
     }
@@ -142,6 +148,14 @@ const NotificationsPage = () => {
         iconBg: 'bg-rose-100 text-rose-700',
         icon: 'cancel',
         badgeColor: 'danger',
+      };
+    }
+    if (typeStr.includes('verification') || typeStr.includes('request') || typeStr.includes('submission')) {
+      return {
+        accentClass: 'bg-indigo-50/70 border-indigo-200 text-indigo-950',
+        iconBg: 'bg-indigo-100 text-indigo-700',
+        icon: 'rate_review',
+        badgeColor: 'primary',
       };
     }
     if (typeStr.includes('badge') || typeStr.includes('credential') || typeStr.includes('milestone')) {

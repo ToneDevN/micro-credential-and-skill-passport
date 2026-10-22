@@ -7,6 +7,7 @@ import {
   markAsRead,
   markAllAsRead,
 } from '../services/notificationService';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * Format relative time string (e.g. "2 hours ago", "Just now")
@@ -28,6 +29,7 @@ export const formatRelativeTime = (dateString) => {
 };
 
 const NotificationBell = () => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
@@ -121,6 +123,12 @@ const NotificationBell = () => {
       navigate('/student/passport');
     } else if (notif.type === 'badge_rejected') {
       navigate('/student/my-requests');
+    } else if (notif.type === 'new_verification_request' || notif.type === 'verification_submitted') {
+      if (user?.role === 'instructor') {
+        navigate(notif.related_id ? `/instructor/requests/${notif.related_id}` : '/instructor/requests');
+      } else {
+        navigate('/student/my-requests');
+      }
     } else {
       navigate('/notifications');
     }
@@ -152,15 +160,14 @@ const NotificationBell = () => {
         >
           <span className="material-symbols-outlined text-[20px]">notifications</span>
         </Button>
-        <Badge
-
-          color="danger"
-          shape="circle"
-          isInvisible={unreadCount === 0}
-          size="sm"
-        >
-          {unreadCount > 99 ? '99+' : unreadCount}
-        </Badge>
+        {unreadCount > 0 && (
+          <Badge
+            color="danger"
+            size="sm"
+          >
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </Badge>
+        )}
       </Badge.Anchor>
 
 
@@ -209,6 +216,21 @@ const NotificationBell = () => {
                 {notifications.map((notif) => {
                   const isApproved = notif.type === 'badge_approved';
                   const isCompleted = notif.type === 'course_completed';
+                  const isRequest = notif.type === 'new_verification_request' || notif.type === 'verification_submitted';
+
+                  let iconBg = 'bg-rose-100 text-rose-600';
+                  let iconName = 'cancel';
+                  if (isCompleted) {
+                    iconBg = 'bg-emerald-100 text-emerald-600';
+                    iconName = 'workspace_premium';
+                  } else if (isApproved) {
+                    iconBg = 'bg-emerald-100 text-emerald-600';
+                    iconName = 'verified';
+                  } else if (isRequest) {
+                    iconBg = 'bg-indigo-100 text-indigo-600';
+                    iconName = 'rate_review';
+                  }
+
                   return (
                     <div
                       key={notif._id}
@@ -226,13 +248,10 @@ const NotificationBell = () => {
                       }}
                     >
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isCompleted || isApproved
-                          ? 'bg-emerald-100 text-emerald-600'
-                          : 'bg-rose-100 text-rose-600'
-                          }`}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}
                       >
                         <span className="material-symbols-outlined text-[18px]">
-                          {isCompleted ? 'workspace_premium' : isApproved ? 'verified' : 'cancel'}
+                          {iconName}
                         </span>
                       </div>
 

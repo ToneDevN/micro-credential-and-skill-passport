@@ -377,7 +377,7 @@ const seedDatabase = async () => {
     });
 
     // Alice — SQL vs NoSQL: PENDING (in review queue — 3 hrs ago)
-    await VerificationRequest.create({
+    const reqAliceSqlNoSql = await VerificationRequest.create({
       student_skill_status_id: ssAliceDbSqlNoSql._id,
       evidence_url: 'https://github.com/alice-johnson/sql-vs-nosql-analysis',
       status: 'pending',
@@ -405,7 +405,7 @@ const seedDatabase = async () => {
     });
 
     // Bob — MongoDB: PENDING (in review queue — 5 hrs ago)
-    await VerificationRequest.create({
+    const reqBobMongoPipe = await VerificationRequest.create({
       student_skill_status_id: ssBobWebMongo._id,
       evidence_url: 'https://github.com/bob-williams/mongo-pipeline-practice',
       status: 'pending',
@@ -413,7 +413,7 @@ const seedDatabase = async () => {
     });
 
     // Bob — JWT Auth: PENDING (in review queue — 1 hr ago)
-    await VerificationRequest.create({
+    const reqBobJwt = await VerificationRequest.create({
       student_skill_status_id: ssBobApiJwt._id,
       evidence_url: 'https://github.com/bob-williams/secure-api-jwt',
       status: 'pending',
@@ -421,7 +421,7 @@ const seedDatabase = async () => {
     });
 
     // Charlie — REST API: PENDING (in review queue — 30 mins ago)
-    await VerificationRequest.create({
+    const reqCharlieWebApi = await VerificationRequest.create({
       student_skill_status_id: ssCharlieWebApi._id,
       evidence_url: 'https://github.com/charlie-b/first-express-api',
       status: 'pending',
@@ -495,7 +495,13 @@ const seedDatabase = async () => {
     // Bob — 1 notification (read)
     await Notification.create({ user_id: bob._id, type: 'badge_approved', message: 'ทักษะ "Build REST API with Express" ใน Web Development ได้รับการอนุมัติแล้ว! 🎉', related_id: ssBobWebApi._id, is_read: true, created_at: daysAgo(7) });
 
-    console.log('[Seed] Notifications — Alice: 5 (1 unread), Bob: 1 (read).');
+    // Instructor — 4 notifications for pending review queue requests (2 unread, 2 read)
+    await Notification.create({ user_id: instructor._id, type: 'new_verification_request', message: 'Alice Johnson ได้ส่งคำขอตรวจประเมินทักษะ "SQL vs NoSQL Analysis" ใน Database Design', related_id: reqAliceSqlNoSql._id, is_read: false, created_at: hoursAgo(3) });
+    await Notification.create({ user_id: instructor._id, type: 'new_verification_request', message: 'Bob Williams ได้ส่งคำขอตรวจประเมินทักษะ "MongoDB Aggregation Pipeline" ใน Web Development', related_id: reqBobMongoPipe._id, is_read: false, created_at: hoursAgo(5) });
+    await Notification.create({ user_id: instructor._id, type: 'new_verification_request', message: 'Bob Williams ได้ส่งคำขอตรวจประเมินทักษะ "JWT Authentication" ใน API Security', related_id: reqBobJwt._id, is_read: true, created_at: hoursAgo(1) });
+    await Notification.create({ user_id: instructor._id, type: 'new_verification_request', message: 'Charlie Brown ได้ส่งคำขอตรวจประเมินทักษะ "Build REST API with Express" ใน Web Development', related_id: reqCharlieWebApi._id, is_read: true, created_at: minutesAgo(30) });
+
+    console.log('[Seed] Notifications — Alice: 5 (1 unread), Bob: 1 (read), Instructor: 4 (2 unread).');
 
     // ── Summary ───────────────────────────────────────────────────────────────
     console.log('');

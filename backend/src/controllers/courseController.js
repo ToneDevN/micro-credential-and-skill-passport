@@ -5,6 +5,7 @@ const {
   StudentSkillStatus,
   StudentPassport,
   Enrollment,
+  VerificationRequest,
 } = require('../models');
 const { getStudentSkillStatuses } = require('../services/studentSkillService');
 
@@ -356,8 +357,40 @@ const deleteCourse = async (req, res, next) => {
       });
     }
 
+    // Check for pending verification requests under this course
+    const pendingStatus = await StudentSkillStatus.findOne({
+      course_skill_id: { $in: courseSkillIds },
+      status: 'pending',
+    });
+
+    const statusIds = await StudentSkillStatus.find({
+      course_skill_id: { $in: courseSkillIds },
+    }).distinct('_id');
+
+    const pendingRequest = await VerificationRequest.findOne({
+      student_skill_status_id: { $in: statusIds },
+      status: 'pending',
+    });
+
+    if (pendingStatus || pendingRequest) {
+      return res.status(400).json({
+        message: 'Cannot delete course with pending verification requests',
+      });
+    }
+
+    // Clean up verification requests and student skill statuses under this course
+    await VerificationRequest.deleteMany({
+      student_skill_status_id: { $in: statusIds },
+    });
+    await StudentSkillStatus.deleteMany({
+      course_skill_id: { $in: courseSkillIds },
+    });
+
     // Delete associated CourseSkill entries
     await CourseSkill.deleteMany({ course_id: course._id });
+
+    // Delete enrollments for this course
+    await Enrollment.deleteMany({ course_id: course._id });
 
     // Delete course
     await Course.findByIdAndDelete(course._id);

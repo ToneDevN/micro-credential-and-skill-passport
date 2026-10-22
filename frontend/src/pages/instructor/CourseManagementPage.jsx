@@ -13,7 +13,7 @@ import {
   TextArea
 } from '@heroui/react';
 import api from '../../services/api';
-import { toastSuccess } from '../../utils/toast.js';
+import { toastSuccess, toastWarning } from '../../utils/toast.js';
 import { handleApiError } from '../../utils/apiErrorToast.js';
 
 const CourseManagementPage = () => {
@@ -93,24 +93,30 @@ const CourseManagementPage = () => {
 
   const validateForm = () => {
     const errs = {};
-    if (!formData.name.trim()) {
+    if (!formData.name || !formData.name.trim()) {
       errs.name = 'Course name is required.';
     } else if (formData.name.trim().length < 2) {
       errs.name = 'Course name must be at least 2 characters.';
     }
 
-    if (!formData.description.trim()) {
+    if (!formData.description || !formData.description.trim()) {
       errs.description = 'Course description is required.';
     } else if (formData.description.trim().length < 10) {
       errs.description = 'Course description must be at least 10 characters.';
     }
 
     setFormErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) {
+      const firstError = Object.values(errs)[0];
+      toastWarning('ข้อมูลไม่ครบถ้วน', firstError);
+      return false;
+    }
+    return true;
   };
 
   const handleSubmitCourse = async (e) => {
-    e.preventDefault();
+    if (e?.preventDefault) e.preventDefault();
+    if (submitting) return;
     if (!validateForm()) return;
 
     try {
@@ -157,7 +163,15 @@ const CourseManagementPage = () => {
       await fetchCourses();
     } catch (err) {
       console.error('Delete course failed', err);
-      const msg = err.response?.data?.message || 'Failed to delete course. Please try again.';
+      let msg = err.response?.data?.message || 'Failed to delete course. Please try again.';
+      if (msg === 'Cannot delete course with approved badges') {
+        msg = 'ไม่สามารถลบหลักสูตรนี้ได้ เนื่องจากมีนักศึกษาได้รับอนุมัติ Badge ในหลักสูตรนี้แล้ว';
+      } else if (
+        msg === 'Cannot delete course with pending verification requests' ||
+        msg.includes('pending')
+      ) {
+        msg = 'ไม่สามารถลบหลักสูตรนี้ได้ เนื่องจากยังมีคำขอตรวจสอบทักษะที่อยู่ระหว่างดำเนินการ (Pending) ในหลักสูตรนี้ กรุณาตรวจสอบคำขอให้เสร็จสิ้นก่อน';
+      }
       setDeleteError(msg);
       handleApiError(err);
     } finally {
@@ -325,59 +339,67 @@ const CourseManagementPage = () => {
             <Modal.Container>
               <Modal.Dialog className="sm:max-w-lg">
                 <Modal.CloseTrigger />
-                <Modal.Header>
-                  <Modal.Heading className="text-base font-bold text-slate-900 m-0">
-                    {editingCourse ? 'Edit Course' : 'Create New Course'}
-                  </Modal.Heading>
-                </Modal.Header>
-                <Modal.Body className="p-4 sm:p-5 flex flex-col gap-3">
-                  {formErrors.api && <Alert status="danger" className="text-xs">{formErrors.api}</Alert>}
+                <form onSubmit={handleSubmitCourse}>
+                  <Modal.Header>
+                    <Modal.Heading className="text-base font-bold text-slate-900 m-0">
+                      {editingCourse ? 'Edit Course' : 'Create New Course'}
+                    </Modal.Heading>
+                  </Modal.Header>
+                  <Modal.Body className="p-4 sm:p-5 flex flex-col gap-3">
+                    {formErrors.api && <Alert status="danger" className="text-xs">{formErrors.api}</Alert>}
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-slate-700" htmlFor="course-name">
-                      Course Name
-                    </label>
-                    <Input
-                      id="course-name"
-                      type="text"
-                      placeholder="e.g. Advanced Web Development"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      disabled={submitting}
-                      className="w-full text-xs"
-                      autoFocus
-                    />
-                    {formErrors.name && (
-                      <span className="text-xs text-rose-600">{formErrors.name}</span>
-                    )}
-                  </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-slate-700" htmlFor="course-name">
+                        Course Name
+                      </label>
+                      <Input
+                        id="course-name"
+                        type="text"
+                        placeholder="e.g. Advanced Web Development"
+                        value={formData.name}
+                        onChange={(e) => {
+                          setFormData({ ...formData, name: e.target.value });
+                          if (formErrors.name) setFormErrors((prev) => ({ ...prev, name: null }));
+                        }}
+                        disabled={submitting}
+                        className="w-full text-xs"
+                        autoFocus
+                      />
+                      {formErrors.name && (
+                        <span className="text-xs text-rose-600">{formErrors.name}</span>
+                      )}
+                    </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-slate-700" htmlFor="course-desc">
-                      Description
-                    </label>
-                    <TextArea
-                      id="course-desc"
-                      rows={3}
-                      placeholder="Describe the course outcomes and topics covered..."
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      disabled={submitting}
-                      className="w-full text-xs"
-                    />
-                    {formErrors.description && (
-                      <span className="text-xs text-rose-600">{formErrors.description}</span>
-                    )}
-                  </div>
-                </Modal.Body>
-                <Modal.Footer className="flex justify-end gap-2 p-3 border-t border-slate-100">
-                  <Button size="sm" variant="secondary" onPress={handleCloseModal} isDisabled={submitting}>
-                    Cancel
-                  </Button>
-                  <Button size="sm" color="primary" isLoading={submitting} onPress={handleSubmitCourse}>
-                    {editingCourse ? 'Save Changes' : 'Create Course'}
-                  </Button>
-                </Modal.Footer>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-slate-700" htmlFor="course-desc">
+                        Description
+                      </label>
+                      <TextArea
+                        id="course-desc"
+                        rows={3}
+                        placeholder="Describe the course outcomes and topics covered..."
+                        value={formData.description}
+                        onChange={(e) => {
+                          setFormData({ ...formData, description: e.target.value });
+                          if (formErrors.description) setFormErrors((prev) => ({ ...prev, description: null }));
+                        }}
+                        disabled={submitting}
+                        className="w-full text-xs"
+                      />
+                      {formErrors.description && (
+                        <span className="text-xs text-rose-600">{formErrors.description}</span>
+                      )}
+                    </div>
+                  </Modal.Body>
+                  <Modal.Footer className="flex justify-end gap-2 p-3 border-t border-slate-100">
+                    <Button size="sm" variant="secondary" onPress={handleCloseModal} isDisabled={submitting}>
+                      Cancel
+                    </Button>
+                    <Button size="sm" color="primary" type="submit" isLoading={submitting} onPress={handleSubmitCourse}>
+                      {editingCourse ? 'Save Changes' : 'Create Course'}
+                    </Button>
+                  </Modal.Footer>
+                </form>
               </Modal.Dialog>
             </Modal.Container>
           </Modal.Backdrop>

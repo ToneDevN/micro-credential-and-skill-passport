@@ -10,7 +10,13 @@ const notificationSchema = new Schema({
   },
   type: {
     type: String,
-    enum: ['badge_approved', 'badge_rejected', 'course_completed'],
+    enum: [
+      'badge_approved',
+      'badge_rejected',
+      'course_completed',
+      'new_verification_request',
+      'verification_submitted',
+    ],
     required: true,
   },
   message: {

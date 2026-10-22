@@ -6,6 +6,7 @@ const {
   StudentSkillStatus,
   VerificationRequest,
 } = require('../models');
+const { getStudentSkillStatuses } = require('../services/studentSkillService');
 
 /**
  * @desc    Student enrolls in a course (UC-31)
@@ -140,7 +141,10 @@ const getStudentEnrollments = async (req, res, next) => {
       student_id: studentId,
       status: 'active',
     })
-      .populate('course_id')
+      .populate({
+        path: 'course_id',
+        populate: { path: 'instructor_id', select: 'name email' },
+      })
       .sort({ enrolled_at: -1 });
 
     const results = await Promise.all(
@@ -148,15 +152,49 @@ const getStudentEnrollments = async (req, res, next) => {
         const course = enr.course_id;
         if (!course) return null;
 
-        const courseSkills = await CourseSkill.find({ course_id: course._id });
+        const courseSkills = await CourseSkill.find({ course_id: course._id }).populate('skill_id');
         const totalCount = courseSkills.length;
         const courseSkillIds = courseSkills.map((cs) => cs._id);
 
-        const earnedCount = await StudentSkillStatus.countDocuments({
+        const studentStatuses = await StudentSkillStatus.find({
           student_id: studentId,
           course_skill_id: { $in: courseSkillIds },
-          status: 'approved',
         });
+
+        const statusByCsId = new Map();
+        studentStatuses.forEach((s) => {
+          statusByCsId.set(s.course_skill_id.toString(), s.status);
+        });
+
+        const skillIds = courseSkills
+          .filter((cs) => cs.skill_id)
+          .map((cs) => cs.skill_id._id);
+        const globalStatusMap = await getStudentSkillStatuses(studentId, skillIds);
+
+        const skills = courseSkills
+          .filter((cs) => cs.skill_id)
+          .map((cs) => {
+            const csIdStr = cs._id.toString();
+            const skillIdStr = cs.skill_id._id.toString();
+            const status =
+              statusByCsId.get(csIdStr) ||
+              globalStatusMap.get(skillIdStr) ||
+              'not_started';
+            const isVerified = status === 'approved';
+
+            return {
+              _id: cs.skill_id._id,
+              course_skill_id: cs._id,
+              name: cs.skill_id.name,
+              description: cs.skill_id.description,
+              criteria: cs.skill_id.criteria,
+              is_open_for_verification: Boolean(cs.skill_id.is_open_for_verification),
+              status,
+              isVerified,
+            };
+          });
+
+        const earnedCount = skills.filter((s) => s.isVerified).length;
 
         return {
           _id: enr._id,
@@ -165,10 +203,18 @@ const getStudentEnrollments = async (req, res, next) => {
             name: course.name,
             description: course.description,
             instructor_id: course.instructor_id,
+            instructor:
+              course.instructor_id && typeof course.instructor_id === 'object' && course.instructor_id.name
+                ? {
+                    _id: course.instructor_id._id,
+                    name: course.instructor_id.name,
+                  }
+                : course.instructor_id,
           },
           status: enr.status,
           earnedCount,
           totalCount,
+          skills,
           enrolled_at: enr.enrolled_at,
           completed_at: enr.completed_at,
         };

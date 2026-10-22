@@ -10,6 +10,7 @@ const {
   CourseSkill,
   StudentSkillStatus,
   StudentPassport,
+  VerificationRequest,
 } = require('../src/models');
 
 let mongoServer;
@@ -580,6 +581,39 @@ describe('Micro-Skill Management API Tests (TON-85)', () => {
       expect(cs).not.toBeNull();
       const s = await MicroSkill.findById(s1._id);
       expect(s).not.toBeNull();
+    });
+
+    it('20b. Delete skill with pending verification request returns 400 with "Cannot delete skill with pending verification requests"', async () => {
+      const pendingSkill = await MicroSkill.create({
+        name: 'Pending Skill',
+        description: 'Skill with pending review',
+        criteria: 'Pass pending check',
+      });
+      const pendingCs = await CourseSkill.create({
+        course_id: c1._id,
+        skill_id: pendingSkill._id,
+      });
+      const sss = await StudentSkillStatus.create({
+        student_id: student._id,
+        course_skill_id: pendingCs._id,
+        status: 'pending',
+      });
+      await VerificationRequest.create({
+        student_skill_status_id: sss._id,
+        evidence_url: 'https://github.com/student/pending-repo',
+        status: 'pending',
+      });
+
+      const res = await request(app)
+        .delete(`/api/courses/${c1._id}/skills/${pendingSkill._id}`)
+        .set('Authorization', `Bearer ${instructor1Token}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('Cannot delete skill with pending verification requests');
+
+      // Verify skill was NOT deleted
+      const cs = await CourseSkill.findById(pendingCs._id);
+      expect(cs).not.toBeNull();
     });
 
     it('21. Delete skill shared across courses removes only CourseSkill, MicroSkill preserved', async () => {

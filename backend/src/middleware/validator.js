@@ -52,11 +52,16 @@ const normalizeVerificationBody = async (req, res, next) => {
       }
       if (!req.body.courseSkillId && (req.body.skill_id || req.body.skillId)) {
         const { CourseSkill } = require('../models');
-        const cs = await CourseSkill.findOne({
-          skill_id: req.body.skill_id || req.body.skillId,
-        });
-        if (cs) {
-          req.body.courseSkillId = cs._id.toString();
+        const mongoose = require('mongoose');
+        const sid = req.body.skill_id || req.body.skillId;
+        if (mongoose.Types.ObjectId.isValid(sid)) {
+          let cs = await CourseSkill.findOne({ skill_id: sid });
+          if (!cs) {
+            cs = await CourseSkill.findById(sid);
+          }
+          if (cs) {
+            req.body.courseSkillId = cs._id.toString();
+          }
         }
       }
     }

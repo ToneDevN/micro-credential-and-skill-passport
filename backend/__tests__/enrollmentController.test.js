@@ -305,10 +305,23 @@ describe('Course Enrollment API Tests (TON-117)', () => {
       expect(c1Enrollment).toBeDefined();
       expect(c1Enrollment.earnedCount).toBe(1);
       expect(c1Enrollment.totalCount).toBe(2);
+      expect(c1Enrollment.skills).toHaveLength(2);
+      const approvedSkill = c1Enrollment.skills.find(
+        (s) => s.course_skill_id.toString() === cs1._id.toString()
+      );
+      const unverifiedSkill = c1Enrollment.skills.find(
+        (s) => s.course_skill_id.toString() === cs2._id.toString()
+      );
+      expect(approvedSkill.isVerified).toBe(true);
+      expect(approvedSkill.status).toBe('approved');
+      expect(unverifiedSkill.isVerified).toBe(false);
+      expect(unverifiedSkill.status).toBe('not_started');
 
       expect(c2Enrollment).toBeDefined();
       expect(c2Enrollment.earnedCount).toBe(0);
       expect(c2Enrollment.totalCount).toBe(1);
+      expect(c2Enrollment.skills).toHaveLength(1);
+      expect(c2Enrollment.skills[0].isVerified).toBe(false);
     });
 
     it('10. Student with no enrollments -> 200, empty array', async () => {
